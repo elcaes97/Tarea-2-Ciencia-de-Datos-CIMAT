@@ -1,38 +1,47 @@
+"""
+Generación de datos sintéticos para experimentos de clasificación.
+"""
+
 import numpy as np
+from typing import Union, List, Tuple
 
-def generate_data(means, covs, N):
-    """ Genera N muestras de múltiples distribuciones normales.
 
-    Parámetros:
-    -----------
-    means : list of ndarray
-        Lista con los vectores de medias de cada clase.
-    covs : list of ndarray
-        Lista con las matrices de covarianza de cada clase.
-    N : int or list
-        Número de muestras a generar por clase.
-
-    Retorna:
-    --------
-    X : ndarray (n, d)
-        Datos a clasificar (n puntos de dimensión d).
-    y : ndarray (n,)
-        Etiquetas de clase.
+def generate_data(
+    means: List[np.ndarray],
+    covs: List[np.ndarray], 
+    n_samples: Union[int, List[int]]
+) -> Tuple[np.ndarray, np.ndarray]:
     """
-    X_list, y_list = [], []  # para los datos y las etiquetas de cada clase
+    Genera datos sintéticos a partir de distribuciones normales multivariadas.
     
-    # Determinar el número de muestras por clase
-    N_samples = [N] * len(means) if isinstance(N, int) else N
+    Args:
+        means: Lista de vectores de media para cada clase
+        covs: Lista de matrices de covarianza para cada clase
+        n_samples: Número de muestras por clase (int) o lista específica por clase
+        
+    Returns:
+        Tuple con:
+            - X: Array de características (n_muestras, n_características)
+            - y: Array de etiquetas (n_muestras,)
+            
+    Raises:
+        ValueError: Si los tamaños de means, covs y n_samples no coinciden
+    """
+    if len(means) != len(covs):
+        raise ValueError("means y covs deben tener la misma longitud")
     
-    # Generar datos para cada clase
+    # Convertir n_samples a lista si es un entero
+    if isinstance(n_samples, int):
+        n_samples = [n_samples] * len(means)
+    elif len(n_samples) != len(means):
+        raise ValueError("n_samples debe ser int o lista de la misma longitud que means")
+    
+    X_list, y_list = [], []
+    
     for i, (mean, cov) in enumerate(zip(means, covs)):
-        # Generar muestras de la distribución normal multivariada
-        samples = np.random.multivariate_normal(mean, cov, N_samples[i])
+        n = n_samples[i]
+        samples = np.random.multivariate_normal(mean, cov, n)
         X_list.append(samples)
-        y_list.append(np.full(N_samples[i], i))  # Etiquetas con el índice de la clase
+        y_list.append(np.full(n, i))
     
-    # Concatenar todos los datos y etiquetas
-    X = np.vstack(X_list)
-    y = np.concatenate(y_list)
-    
-    return X, y
+    return np.vstack(X_list), np.concatenate(y_list)
