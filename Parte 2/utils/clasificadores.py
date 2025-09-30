@@ -23,11 +23,6 @@ class GaussianBayesClassifier:
             X (array): Matriz de muestras (n_samples, n_features).
             y (array): Etiquetas de clase (n_samples,).
         """
-
-        # Preparar para clasificar
-        # self.inv_covs = [inv(cov) for cov in self.covs]
-        # self.det_covs = [det(cov) for cov in self.covs]
-
         self.classes_, self.counts_ = np.unique(y, return_counts=True)
         self.data_size = len(X)
         self.n_classes = len(self.classes_)

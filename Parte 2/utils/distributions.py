@@ -1,6 +1,6 @@
 import numpy as np
 
-def generata_data(means, covs, N):
+def generate_data(means, covs, N):
     """ Genera N muestras de múltiples distribuciones normales.
 
     Parámetros:
