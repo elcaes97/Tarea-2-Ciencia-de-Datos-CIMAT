@@ -2,7 +2,7 @@ import numpy as np
 from scipy.stats import multivariate_normal
 
 class GaussianBayesClassifier:
-    def __init__(self, means, covs, priors=None):
+    def __init__(self, means=None, covs=None, priors=None):
         """
         Inicializa el clasificador.
         
@@ -14,6 +14,9 @@ class GaussianBayesClassifier:
         self.means = means
         self.covs = covs
         self.priors = priors
+
+    def set_params(self, **kwargs) -> None:
+        for key, value in kwargs.items(): setattr(self, key, value)
 
     def fit(self, X, y):
         """

@@ -7,119 +7,109 @@ from sklearn.naive_bayes import GaussianNB
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis,\
     QuadraticDiscriminantAnalysis
 from sklearn.neighbors import KNeighborsClassifier
+from utils.config import *
+import os as os
 
 np.random.seed(0)   # Para la reproducibilidad
 plt.rcParams['figure.constrained_layout.use'] = True # Para ajustar figuras
 
-# Paramnetros de distribuciones
-means = [np.array([-1, -1]), np.array([1, 1]), np.array([1, -1])]
-covs = [np.array([[1, 0], [0, 1]]), np.array([[1, 0], [0, 1]]), np.array([[1, 0], [0, 1]])]
-sizes = [100, 100, 100] # tamanios de cada muestra
-
-X, y = generate_data(means, covs, N=sizes)  # Generar datos
-
-# Mostrar la data
-show_data(X, y, title='DataGenerated')
-plt.savefig('./figures/data.png')
 
 
-# Pruebas visuales de los clasificadores
+# Empezar con las pruebas
 
-# Parametros de knn
-kneighbors = 5
-knn_weights = 'distance'
+## Datos con distintas medias y mismas covs (Clases proporcionales)
 
-# Generar figura y ejes
-fig, axes = plt.subplots(3, 2)
-
-show_data(X, y, title='DataGenerated', ax=axes[0, 0])  # Mostrar datos generados
-
-# Para mostrar clasificación bayes optimo
-model = GaussianBayesClassifier(means, covs)
-model.fit(X, y)
-y_pred = model.predict(X)
-show_data(X, y_pred, title=model.__class__.__name__, ax=axes[0, 1], model=model)
-
-# Para mostrar clasificación con los otros clasificadores
-models = [
-    GaussianNB(), LinearDiscriminantAnalysis(),
-    QuadraticDiscriminantAnalysis(),
-    KNeighborsClassifier(n_neighbors=kneighbors, weights=knn_weights)
-    ]
-
-for model in models:
-    model.fit(X, y)
-    y_pred = model.predict(X)
-    show_data(X, y_pred, title=model.__class__.__name__,
-        ax=axes[1+models.index(model)//2, models.index(model)%2], model=model)
-
-
-fig.suptitle('Clasificación de datos con distribuciones normales')
-current_size = fig.get_size_inches()
-fig.set_size_inches(current_size[0]*1.5, current_size[1]*1.5)
-plt.savefig('./figures/classifiers.png')
-
-
-
-# variando k en knn
-knns_clasifiers = [
-    KNeighborsClassifier(n_neighbors=k+1, weights='distance') for k in range(10)
+models = [  # Los modelos para estas pruebas
+    GaussianNB(), LinearDiscriminantAnalysis(), QuadraticDiscriminantAnalysis(),
+    KNeighborsClassifier(weights=knn_weights),
+    GaussianBayesClassifier(diff_means, same_covs)
 ]
 
-fig, axes = plt.subplots(2, 5)
+titles = ['DataGen','GNB','LDA','QDA','KNN','GB']
 
-for i, knn in enumerate(knns_clasifiers):
-    knn.fit(X, y)
-    y_pred = knn.predict(X)
-    show_data(X, y_pred, title=f'K={1+i}', ax=axes[i//5, i%5], model=model)
+fig, axes = plt.subplots(len(titles), len(Ns_prop))
 
-fig.suptitle('KNN con diferentes k')
-current_size = fig.get_size_inches()
-fig.set_size_inches(current_size[0]*1.5, current_size[1]*1.5)
-plt.savefig('./figures/knns.png')
+for n in Ns_prop:
+    X, y = generate_data(diff_means, same_covs, N=n)
 
+    show_data(X, y, title=titles[0]+f' N={n}', ax=axes[0, Ns_prop.index(n)])
 
-### Aqui empezaremos con los casos de la tarea
-
-# inicialmente dos clases con priors iguales (0.5) y varianzas iguales
-means = [
-    np.array([-1,0]),
-    np.array([0,1])
-]
-
-covs = [
-    np.array([
-        [1,0],
-        [0,1]
-    ]),
-    np.array([
-        [1,0],
-        [0,1]
-    ])
-]
-
-
-ns = [50, 100, 200, 500]
-models = [
-    GaussianNB(), LinearDiscriminantAnalysis(),
-    QuadraticDiscriminantAnalysis(),
-    KNeighborsClassifier(n_neighbors=kneighbors, weights=knn_weights),
-    GaussianBayesClassifier(means, covs)
-]
-
-titles = ['GNB','LDA','QDA','KNN','GB']
-
-fig, axes = plt.subplots(len(ns), len(models))
-
-for i, n in enumerate(ns):
-    X, y = generate_data(means, covs, N=n)
     for j, model in enumerate(models):
         model.fit(X, y)
         y_pred = model.predict(X)
-        show_data(X, y_pred, title=titles[j]+f' N={n}',\
-            ax=axes[i, j], model=model)
+        show_data(X, y_pred, title=titles[j+1]+f' N={n}',\
+            ax=axes[j+1, Ns_prop.index(n)], model=model)
+
+fig.suptitle('Comparación de clasificadores con mismos tamaños de muestras')
+current_size = fig.get_size_inches()
+fig.set_size_inches(current_size[0]*1.5, current_size[1]*1.5)
+plt.savefig('./figures/same_covs_and_same_priors_classifiers.png')
+
+
+## Datos con distintas medias y mismas covs (Clases desproporcionales)
+
+fig, axes = plt.subplots(len(titles), len(Ns_nonprop))
+
+for n in Ns_nonprop:
+    X, y = generate_data(diff_means, same_covs, N=n)
+
+    show_data(X, y, title=titles[0]+f' N={n}', ax=axes[0, Ns_nonprop.index(n)])
+
+    for j, model in enumerate(models):
+        model.fit(X, y)
+        y_pred = model.predict(X)
+        show_data(X, y_pred, title=titles[j+1]+f' N={n}',\
+            ax=axes[j+1, Ns_nonprop.index(n)], model=model)
 
 fig.suptitle('Comparación de clasificadores con diferentes tamaños de muestras')
 current_size = fig.get_size_inches()
 fig.set_size_inches(current_size[0]*1.5, current_size[1]*1.5)
-plt.savefig('./figures/same_priors_and_vars.png')
+plt.savefig('./figures/same_covs_and_distinct_priors_classifiers.png')
+
+
+### Ahora variaremos k en knn (Datos proporcionales)
+
+fig, axes = plt.subplots(nrows = len(ks)+1, ncols = len(Ns_prop))
+
+for row, k in enumerate(ks):
+    for col, n in enumerate(Ns_prop):
+        X, y = generate_data(diff_means, same_covs, N=n)
+
+        if row == 0:
+            show_data(X, y, title=f'DataGen, N={n}', ax=axes[row, col])
+        
+        knn = KNeighborsClassifier(weights=knn_weights, n_neighbors=k)
+        knn.fit(X, y)
+        y_pred = knn.predict(X)
+        show_data(X, y_pred, title=f'k={k}, N={n}', ax=axes[row+1, col],\
+            model=knn)
+
+
+
+fig.suptitle('Comparación de clasificadores con tamaños de muestras iguales')
+current_size = fig.get_size_inches()
+fig.set_size_inches(current_size[0]*1.5, current_size[1]*1.5)
+plt.savefig('./figures/same_covs_and_same_priors_knn.png')
+
+
+### Ahora variaremos k en knn (Datos no proporcionales)
+
+fig, axes = plt.subplots(nrows = len(ks)+1, ncols = len(Ns_nonprop))
+
+for row, k in enumerate(ks):
+    for col, n in enumerate(Ns_nonprop):
+        X, y = generate_data(diff_means, same_covs, N=n)
+
+        if row == 0:
+            show_data(X, y, title=f'DataGen, N={n}', ax=axes[row, col])
+        
+        knn = KNeighborsClassifier(weights=knn_weights, n_neighbors=k)
+        knn.fit(X, y)
+        y_pred = knn.predict(X)
+        show_data(X, y_pred, title=f'k={k}, N={n}', ax=axes[row+1, col],\
+            model=knn)
+
+fig.suptitle('Comparación de clasificadores con diferentes tamaños de muestras')
+current_size = fig.get_size_inches()
+fig.set_size_inches(current_size[0]*1.5, current_size[1]*1.5)
+plt.savefig('./figures/same_covs_and_distinct_priors_knn.png')
