@@ -3,9 +3,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 from sklearn.inspection import DecisionBoundaryDisplay
 
-
-def show_data(X:np.ndarray, y:np.ndarray, ax=None, model=None, **ax_kwargs)\
-    -> None:
+def show_data(X:np.ndarray, y:np.ndarray, size_points=0.5, ax=None, model=None,\
+    **ax_kwargs) -> None:
     """ Muestra los datos en un grafico de dispersión.
 
     Parámetros:
@@ -33,7 +32,7 @@ def show_data(X:np.ndarray, y:np.ndarray, ax=None, model=None, **ax_kwargs)\
         response_method="predict", alpha=0.2)
 
     # Mostrar datos
-    sns.scatterplot(x=X[:, 0], y=X[:, 1], hue=y, alpha=0.9, ax=ax)
-
+    sns.scatterplot(x=X[:, 0], y=X[:, 1], hue=y, alpha=0.9, ax=ax,\
+        palette="viridis", size=size_points, legend=False)
     ax.set(**ax_kwargs) # configuraciones adicionales
     return ax
