@@ -23,7 +23,7 @@ REPS = 20                 # Réplicas para experimentos
 # Medias para diferentes escenarios
 DIFF_MEANS = [np.array([-1, 0]), np.array([0, 1])]
 SAME_MEANS = [np.zeros(2), np.zeros(2)]
-SEPARATED_MEANS = [np.array([-2, 0]), np.array([2, 0])]
+SEPARATED_MEANS = [np.array([-3, 0]), np.array([3, 0])]
 
 # Matrices de covarianza para diferentes escenarios
 SAME_COVS = [

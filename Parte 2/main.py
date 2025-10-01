@@ -63,6 +63,24 @@ def main():
         "Clases Desbalanceadas con Misma Covarianza", 
         "unbalanced_distinct_cov"
     )
+
+    # Experimento 7: Clases balanceadas separadas
+    print("Ejecutando experimento 7: Clases balanceadas, separadas")
+    create_comparison_figure(
+        SEPARATED_MEANS, LOW_COVS,
+        SAMPLE_SIZES_BALANCED,
+        "Clases balanceadas separadas", 
+        "balanced_separated_classes"
+    )
+
+    # Experimento 8: Clases balanceadas juntas
+    print("Ejecutando experimento 8: Clases balanceadas, juntas")
+    create_comparison_figure(
+        SAME_MEANS, [2*np.identity(2), 0.2*np.identity(2)],
+        SAMPLE_SIZES_BALANCED,
+        "Clases balanceadas juntas", 
+        "balanced_joined_classes"
+    )
     
     print("Todos los experimentos completados. Figuras guardadas en ./figures/")
 
