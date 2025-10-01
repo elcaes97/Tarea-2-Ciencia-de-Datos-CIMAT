@@ -3,6 +3,8 @@ Script principal para experimentos de comparación de clasificadores.
 Genera comparaciones exhaustivas entre diferentes algoritmos de clasificación.
 """
 from utils import *
+from utils.risk_analysis import run_risk_experiments,\
+    create_risk_summary_tables, plot_validation_vs_true_risk
 
 def main():
     """Función principal que ejecuta todos los experimentos."""
@@ -64,6 +66,23 @@ def main():
     )
     
     print("Todos los experimentos completados. Figuras guardadas en ./figures/")
+
+    # Experimentos de análisis de riesgo (Parte II)
+    print("\n=== INICIANDO EXPERIMENTOS DE RIESGO (PARTE II) ===")
+    
+    # Ejecutar experimentos principales de riesgo
+    run_risk_experiments()
+    
+    # Crear tablas resumen
+    create_risk_summary_tables()
+    
+    # Comparación validación vs riesgo verdadero
+    plot_validation_vs_true_risk()
+    
+    print("\nTodos los experimentos completados!")
+    print("Figuras guardadas en ./figures/")
+    print("Resultados numéricos guardados en ./results/")
+
 
 
 if __name__ == "__main__":

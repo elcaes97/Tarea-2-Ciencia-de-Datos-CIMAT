@@ -104,3 +104,11 @@ class GaussianBayesClassifier:
         """Establece parámetros del clasificador."""
         for param, value in params.items():
             setattr(self, param, value)
+
+    def get_params(self, deep=True) -> dict:
+        """Obtiene parámetros del clasificador."""
+        return {
+            'means': self.means,
+            'covs': self.covs,
+            'priors': self.priors
+        }
