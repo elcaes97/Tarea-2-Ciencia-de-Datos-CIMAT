@@ -330,10 +330,157 @@ Para una evaluación honesta del desempeño, el ajuste (\emph{fit}) de transform
 
 \section{Modelado}
 
+\newpage
+
+\section{Parte II. Análisis computacional mediante simulaciones}
+
+\subsection*{Introducción}
+
+El propósito de esta segunda parte es estudiar, en un entorno controlado donde
+la distribución verdadera de las clases son conocidas, el comportamiento de los
+clasificadores vistos en el curso frente al clasificador óptimo (de Bayes).
+
+Para este propósito, se diseñan y ejecutan simulaciones con datos sintéticos
+generados a partir de distribuciones normales multivariadas (en dos
+dimensiones), comparamos el riesgo de clasificación de cada método tanto contra
+el riesgo óptimo como contra estimadores obtenidos por métodos de validación, 
+para estas comparaciones variamos parámetros como los tamaños de muestras y
+valores de $k$ (en \textit{k-NN}). Además, para simplifcar el calculo del error
+de Bayes teórico y comporarlo con los otros errores, se utilizan muestras
+proporcionales y con covarianzas iguales para las dos clases.
 
 
 
+\subsection*{Comportamiento de clasificadores}
 
+A continuación se muestran los resultados obtenidos en las simulaciones
+realizadas. Consideramos los siguientes casos para cada simulación:
+
+\begin{itemize}
+    \item \texttt{Clases separadas}: Mismas covarianzas para ambas clases.
+    \item \texttt{Clases sobrepuestas}: Distintas covarianzas para ambas clases.
+    \item \texttt{Datos balanceados}: Mismos tamaños de muestras para ambas
+    clases.
+    \begin{itemize}
+        \item Mismas covarianzas
+        \item Distintas covarianzas
+    \end{itemize}
+    \item \texttt{Datos desbalanceados}: Tamaños de muestras distintos
+    (proporciones de 0.2 y 0.8).
+    \begin{itemize}
+        \item Mismas covarianzas
+        \item Distintas covarianzas
+    \end{itemize}
+\end{itemize}
+
+
+\subsubsection*{Clases separadas}
+
+Los clasificadores con las clases separadas se comportaron como la Figura
+\ref{fig:classifier-comparison-balanced-separated-classes}.
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=0.8\textwidth]{./Parte 2/figures/classifier_comparison_balanced_separated_classes.png}
+    \caption{Comportamiento de clasificadores con datos balanceados y clases separadas.}    
+    \label{fig:classifier-comparison-balanced-separated-classes}
+\end{figure}
+
+\subsubsection*{Clases sobrepuestas}
+
+Los clasificadores con las clases sobrepuestas se comportaron como la Figura
+\ref{fig:classifier-comparison-balanced-joined-classes}.
+
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=0.8\textwidth]{./Parte 2/figures/classifier_comparison_balanced_joined_classes.png}
+    \caption{Comportamiento de clasificadores con datos balanceados y clases separadas.}    
+    \label{fig:classifier-comparison-balanced-joined-classes}
+\end{figure}
+
+
+\subsubsection*{Datos Balanceados}
+
+
+A partir de este punto, las simulaciones se realizan con las medias
+$\mu_0=(-1,0)$ y $\mu_1=(0, 1)$ para sus respectivas clases, a menos que se
+indique lo contrario.
+
+Para datos generados con la misma covarianza se observan las siguientes
+comparaciones en la Figura \ref{fig:classifier-comparison-balanced-same-cov}
+
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=0.8\textwidth]{./Parte 2/figures/classifier_comparison_balanced_same_cov.png}
+    \caption{Comportamiento de clasificadores con datos balanceados y covarianzas iguales.}    
+    \label{fig:classifier-comparison-balanced-same-cov}
+\end{figure}
+
+Para datos generados con distintas covarianzas se observan las siguientes
+comparaciones en la Figura \ref{fig:classifier-comparison-balanced-distinct-cov}
+
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=0.8\textwidth]{./Parte 2/figures/classifier_comparison_balanced_distinct_cov.png}
+    \caption{Comportamiento de clasificadores con datos balanceados y covarianzas distintas.}    
+    \label{fig:classifier-comparison-balanced-distinct-cov}
+\end{figure}
+
+% Dar conclusiones sobre los resultados obtenidos.
+
+
+\subsubsection*{Datos Desbalanceados}
+
+Para datos generados con la misma covarianza se observan las siguientes
+comparaciones en la Figura \ref{fig:classifier-comparison-unbalanced-same-cov}
+
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=0.8\textwidth]{./Parte 2/figures/classifier_comparison_unbalanced_same_cov.png}
+    \caption{Comportamiento de clasificadores con datos desbalanceados y covarianzas iguales.}    
+    \label{fig:classifier-comparison-unbalanced-same-cov}
+\end{figure}
+
+\newpage
+
+Para datos generados con distintas covarianzas se observan las siguientes
+comparaciones en la Figura \ref{fig:classifier-comparison-unbalanced-distinct-cov}
+
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=0.8\textwidth]{./Parte 2/figures/classifier_comparison_unbalanced_distinct_cov.png}
+    \caption{Comportamiento de clasificadores con datos desbalanceados y covarianzas distintas.}    
+    \label{fig:classifier-comparison-unbalanced-distinct-cov}
+\end{figure}
+
+
+\subsubsection*{Variando $K$ en \textit{K-NN}}
+
+Ademas, en el algoritmo de \textit{k-NN} se puede variar el valor de $k$ para
+obtener diferentes resultados. De mismo modo, consideraremos clases balanceadas
+y clases desvalanceadas, ambas con las mismas covarianzas.
+
+Para clases balanceadas se observan las siguientes comparaciones en la Figura
+\ref{fig:knn-study-balanced}.
+
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=0.8\textwidth]{./Parte 2/figures/knn_study_balanced.png}
+    \caption{Comportamiento de clasificadores con datos desbalanceados y covarianzas distintas.}    
+    \label{fig:knn-study-balanced}
+\end{figure}
+
+Para clases desbalanceadas se observan las siguientes comparaciones en la Figura
+\ref{fig:knn-study-unbalanced}.
+
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=0.8\textwidth]{./Parte 2/figures/knn_study_unbalanced.png}
+    \caption{Comportamiento de clasificadores con datos desbalanceados y covarianzas distintas.}    
+    \label{fig:knn-study-unbalanced}
+\end{figure}
+
+
+\subsection*{Analisis de riesgo}
 
 
 
