@@ -332,7 +332,7 @@ Para una evaluación honesta del desempeño, el ajuste (\emph{fit}) de transform
 
 \newpage
 
-\section{Parte II. Análisis computacional mediante simulaciones}
+\section{Análisis computacional mediante simulaciones (Segunda Parte de la Tarea)}
 
 \subsection*{Introducción}
 
@@ -378,28 +378,32 @@ realizadas. Consideramos los siguientes casos para cada simulación:
 
 Los clasificadores con las clases separadas se comportaron como la Figura
 \ref{fig:classifier-comparison-balanced-separated-classes}.
-\begin{figure}[ht]
+\begin{figure}[!ht]
     \centering
-    \includegraphics[width=0.8\textwidth]{./Parte 2/figures/classifier_comparison_balanced_separated_classes.png}
+    \includegraphics[height=0.4\textheight]{./Parte 2/figures/classifier_comparison_balanced_separated_classes.png}
     \caption{Comportamiento de clasificadores con datos balanceados y clases separadas.}    
     \label{fig:classifier-comparison-balanced-separated-classes}
 \end{figure}
+
+% Argumentar lo de arriba
+\newpage
 
 \subsubsection*{Clases sobrepuestas}
 
 Los clasificadores con las clases sobrepuestas se comportaron como la Figura
 \ref{fig:classifier-comparison-balanced-joined-classes}.
 
-\begin{figure}[ht]
+\begin{figure}[!ht]
     \centering
-    \includegraphics[width=0.8\textwidth]{./Parte 2/figures/classifier_comparison_balanced_joined_classes.png}
+    \includegraphics[height=0.4\textheight]{./Parte 2/figures/classifier_comparison_balanced_joined_classes.png}
     \caption{Comportamiento de clasificadores con datos balanceados y clases separadas.}    
     \label{fig:classifier-comparison-balanced-joined-classes}
 \end{figure}
 
+% Argumentar lo de arriba
+\newpage
 
 \subsubsection*{Datos Balanceados}
-
 
 A partir de este punto, las simulaciones se realizan con las medias
 $\mu_0=(-1,0)$ y $\mu_1=(0, 1)$ para sus respectivas clases, a menos que se
@@ -408,34 +412,36 @@ indique lo contrario.
 Para datos generados con la misma covarianza se observan las siguientes
 comparaciones en la Figura \ref{fig:classifier-comparison-balanced-same-cov}
 
-\begin{figure}[ht]
+\begin{figure}[!ht]
     \centering
-    \includegraphics[width=0.8\textwidth]{./Parte 2/figures/classifier_comparison_balanced_same_cov.png}
+    \includegraphics[height=0.4\textheight]{./Parte 2/figures/classifier_comparison_balanced_same_cov.png}
     \caption{Comportamiento de clasificadores con datos balanceados y covarianzas iguales.}    
     \label{fig:classifier-comparison-balanced-same-cov}
 \end{figure}
 
+\newpage
+
 Para datos generados con distintas covarianzas se observan las siguientes
 comparaciones en la Figura \ref{fig:classifier-comparison-balanced-distinct-cov}
 
-\begin{figure}[ht]
+\begin{figure}[!ht]
     \centering
-    \includegraphics[width=0.8\textwidth]{./Parte 2/figures/classifier_comparison_balanced_distinct_cov.png}
+    \includegraphics[height=0.4\textheight]{./Parte 2/figures/classifier_comparison_balanced_distinct_cov.png}
     \caption{Comportamiento de clasificadores con datos balanceados y covarianzas distintas.}    
     \label{fig:classifier-comparison-balanced-distinct-cov}
 \end{figure}
 
-% Dar conclusiones sobre los resultados obtenidos.
-
+% Argumentar lo de arriba
+\newpage
 
 \subsubsection*{Datos Desbalanceados}
 
 Para datos generados con la misma covarianza se observan las siguientes
 comparaciones en la Figura \ref{fig:classifier-comparison-unbalanced-same-cov}
 
-\begin{figure}[ht]
+\begin{figure}[!ht]
     \centering
-    \includegraphics[width=0.8\textwidth]{./Parte 2/figures/classifier_comparison_unbalanced_same_cov.png}
+    \includegraphics[height=0.4\textheight]{./Parte 2/figures/classifier_comparison_unbalanced_same_cov.png}
     \caption{Comportamiento de clasificadores con datos desbalanceados y covarianzas iguales.}    
     \label{fig:classifier-comparison-unbalanced-same-cov}
 \end{figure}
@@ -445,13 +451,15 @@ comparaciones en la Figura \ref{fig:classifier-comparison-unbalanced-same-cov}
 Para datos generados con distintas covarianzas se observan las siguientes
 comparaciones en la Figura \ref{fig:classifier-comparison-unbalanced-distinct-cov}
 
-\begin{figure}[ht]
+\begin{figure}[!ht]
     \centering
-    \includegraphics[width=0.8\textwidth]{./Parte 2/figures/classifier_comparison_unbalanced_distinct_cov.png}
+    \includegraphics[height=0.4\textheight]{./Parte 2/figures/classifier_comparison_unbalanced_distinct_cov.png}
     \caption{Comportamiento de clasificadores con datos desbalanceados y covarianzas distintas.}    
     \label{fig:classifier-comparison-unbalanced-distinct-cov}
 \end{figure}
 
+% Argumentar lo de arriba
+\newpage
 
 \subsubsection*{Variando $K$ en \textit{K-NN}}
 
@@ -462,27 +470,78 @@ y clases desvalanceadas, ambas con las mismas covarianzas.
 Para clases balanceadas se observan las siguientes comparaciones en la Figura
 \ref{fig:knn-study-balanced}.
 
-\begin{figure}[ht]
+\begin{figure}[!ht]
     \centering
-    \includegraphics[width=0.8\textwidth]{./Parte 2/figures/knn_study_balanced.png}
+    \includegraphics[height=0.4\textheight]{./Parte 2/figures/knn_study_balanced.png}
     \caption{Comportamiento de clasificadores con datos desbalanceados y covarianzas distintas.}    
     \label{fig:knn-study-balanced}
 \end{figure}
 
+\newpage
+
 Para clases desbalanceadas se observan las siguientes comparaciones en la Figura
 \ref{fig:knn-study-unbalanced}.
 
-\begin{figure}[ht]
+\begin{figure}[!ht]
     \centering
-    \includegraphics[width=0.8\textwidth]{./Parte 2/figures/knn_study_unbalanced.png}
+    \includegraphics[height=0.4\textheight]{./Parte 2/figures/knn_study_unbalanced.png}
     \caption{Comportamiento de clasificadores con datos desbalanceados y covarianzas distintas.}    
     \label{fig:knn-study-unbalanced}
 \end{figure}
 
+% Argumentar lo de arriba
+\newpage
 
 \subsection*{Analisis de riesgo}
 
 
+\begin{figure}[!ht]
+    \centering
+    \includegraphics[width=0.8\textwidth]{./Parte 2/figures/risk_vs_samplesize.png}
+    \caption{}
+    \label{fig:risk-vs-samplesize}
+\end{figure}
 
+\newpage
+
+\begin{figure}[!ht]
+    \centering
+    \includegraphics[width=0.4\textwidth]{./Parte 2/figures/risk_gaps.png}
+    \includegraphics[width=0.4\textwidth]{./Parte 2/figures/risk_gap_heatmap.png}
+    \caption{Risk Gaps $L(g) - L(Bayes)$}
+    \label{fig:risk-gaps-images}
+\end{figure}
+
+\begin{figure}[!ht]
+    \centering
+    \includegraphics[width=0.8\textwidth]{./Parte 2/figures/validation_comparison.png}
+    \caption{Monte Carlo vs Cross Validation}
+    \label{fig:mc-vs-cv}
+\end{figure}
+
+
+% ================================================================================
+% TABLA RESUMEN: Riesgos Promedio y Desviaciones Estándar
+% ================================================================================
+% Modelo       Riesgo Promedio Desv Estándar   Gap vs Bayes
+% --------------------------------------------------------------------------------
+% GaussianNB   0.2435          0.0108          0.0037
+% LDA          0.2423          0.0103          0.0026
+% QDA          0.2441          0.0098          0.0043
+% KNN          0.2784          0.0161          0.0386
+% --------------------------------------------------------------------------------
+% BAYES        0.2398          -               0
+% ================================================================================
+
+% ============================================================
+% COMPARACIÓN: Cross-Validation vs Monte Carlo
+% ============================================================
+% Modelo       CV Risk    CV Std     MC Risk    MC Std
+% ------------------------------------------------------------
+% GaussianNB   0.2460     0.0155     0.2359     0.0049
+% LDA          0.2310     0.0284     0.2430     0.0108
+% QDA          0.2350     0.0173     0.2351     0.0091
+% KNN          0.2920     0.0410     0.2774     0.0128
+% ============================================================
 
 \end{document}
