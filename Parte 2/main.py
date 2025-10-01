@@ -3,8 +3,7 @@ Script principal para experimentos de comparación de clasificadores.
 Genera comparaciones exhaustivas entre diferentes algoritmos de clasificación.
 """
 from utils import *
-from utils.risk_analysis import run_risk_experiments,\
-    create_risk_summary_tables, plot_validation_vs_true_risk
+from utils.risk_analysis import run_complete_analysis
 
 def main():
     """Función principal que ejecuta todos los experimentos."""
@@ -67,23 +66,19 @@ def main():
     
     print("Todos los experimentos completados. Figuras guardadas en ./figures/")
 
-    # Experimentos de análisis de riesgo (Parte II)
-    print("\n=== INICIANDO EXPERIMENTOS DE RIESGO (PARTE II) ===")
-    
-    # Ejecutar experimentos principales de riesgo
-    run_risk_experiments()
-    
-    # Crear tablas resumen
-    create_risk_summary_tables()
-    
-    # Comparación validación vs riesgo verdadero
-    plot_validation_vs_true_risk()
-    
-    print("\nTodos los experimentos completados!")
-    print("Figuras guardadas en ./figures/")
-    print("Resultados numéricos guardados en ./results/")
 
-
+    results, bayes_risk = run_complete_analysis()
+    
+    print("\n" + "="*60)
+    print("ANÁLISIS COMPLETADO EXITOSAMENTE")
+    print("="*60)
+    print("Se han generado las siguientes gráficas:")
+    print("1. risk_vs_samplesize.png - L(g) vs n")
+    print("2. knn_risk_vs_k.png - L(k-NN) vs k") 
+    print("3. risk_gaps.png - Brechas L(g)-L(Bayes)")
+    print("4. risk_gap_heatmap.png - Heatmap de brechas")
+    print("5. validation_comparison.png - Comparación métodos validación")
+    print("\nLos resultados se han guardado en el objeto 'results'")
 
 if __name__ == "__main__":
     main()

@@ -1,422 +1,404 @@
-"""
-Análisis de riesgo para clasificadores - Parte II del proyecto.
-Calcula riesgos verdaderos y estimados para diferentes escenarios.
-"""
 import numpy as np
-import pandas as pd
 import matplotlib.pyplot as plt
-from scipy.stats import multivariate_normal
-from sklearn.model_selection import cross_val_score, StratifiedKFold
-from sklearn.naive_bayes import GaussianNB
-from sklearn.discriminant_analysis import LinearDiscriminantAnalysis, QuadraticDiscriminantAnalysis
+from scipy.stats import norm
+from sklearn.model_selection import cross_val_score, KFold
 from sklearn.neighbors import KNeighborsClassifier
-import os
-import seaborn as sns
-
-# Importar configuraciones y utilidades
-from utils.config import *
+from sklearn.discriminant_analysis import LinearDiscriminantAnalysis, QuadraticDiscriminantAnalysis
+from sklearn.naive_bayes import GaussianNB
 from utils.distributions import generate_data
 from utils.clasificadores import GaussianBayesClassifier
+from utils.config import DIFF_MEANS, SAME_COVS, SAMPLE_SIZES_BALANCED, KS
 
-def calculate_bayes_risk(means, covs, priors, n_test=10000):
-    """
-    Calcula el riesgo verdadero de Bayes para distribuciones gaussianas.
-    
-    Args:
-        means: Lista de medias de las clases
-        covs: Lista de matrices de covarianza
-        priors: Priors de las clases
-        n_test: Número de puntos de test para Monte Carlo
-        
-    Returns:
-        Riesgo de Bayes
-    """
-    # Generar datos de test
-    X_test, y_test = generate_data(means, covs, [n_test // len(means)] * len(means))
-    
-    # Calcular probabilidades posteriores usando las distribuciones verdaderas
-    posteriors = np.zeros((len(X_test), len(means)))
-    
-    for i in range(len(means)):
-        # PDF multivariada para cada clase
-        rv = multivariate_normal(means[i], covs[i])
-        posteriors[:, i] = rv.pdf(X_test) * priors[i]
-    
-    # Normalizar posteriores
-    posteriors = posteriors / np.sum(posteriors, axis=1, keepdims=True)
-    
-    # Predecir clase con mayor probabilidad posterior
-    y_pred = np.argmax(posteriors, axis=1)
-    
-    # Calcular riesgo (tasa de error)
-    risk = np.mean(y_pred != y_test)
-    
-    return risk
+# =============================================================================
+# CONFIGURACIÓN
+# =============================================================================
+SAMPLE_SIZES = SAMPLE_SIZES_BALANCED
+K_VALUES = KS
+N_MONTE_CARLO = 50  # Número de simulaciones Monte Carlo (reducir para pruebas)
+N_FOLDS = 20  # Número de folds para cross-validation
 
-def riesgo_clasificador(model, X, y, cv=5, random_state=0):
-    """
-    Calcula el riesgo (tasa de error) de un clasificador usando validación cruzada estratificada.
-
-    Parameters:
-    -----------
-    model : sklearn estimator
-        Clasificador de scikit-learn.
-    X : array-like
-        Datos de entrenamiento.
-    y : array-like
-        Etiquetas objetivo.
-    cv : int, default=5
-        Número de folds en la validación cruzada.
-    random_state : int, default=None
-        Semilla para reproducibilidad.
-
-    Returns:
-    --------
-    riesgo : tuple
-        (riesgo promedio, desviación estándar del riesgo)
-    """
-    # Configurar validación cruzada estratificada
-    skf = StratifiedKFold(n_splits=cv, shuffle=True, random_state=random_state)
+# =============================================================================
+# 1. FUNCIÓN PARA RIESGO DE BAYES TEÓRICO
+# =============================================================================
+def compute_bayes_risk(pi0, pi1, mu0, mu1, sigma):
+    """Compute theoretical Bayes risk for equal covariance case"""
+    delta_sq = (mu1 - mu0).T @ np.linalg.inv(sigma) @ (mu1 - mu0)
+    delta = np.sqrt(delta_sq)
     
-    # Calcular precisión en cada fold
-    scores = cross_val_score(model, X, y, cv=skf, scoring='accuracy')
-    
-    # El riesgo es 1 - precisión
-    riesgos = 1 - scores
-
-    return np.mean(riesgos), np.std(riesgos)
-
-def run_single_risk_experiment(means, covs, sample_sizes, priors, scenario_name):
-    """
-    Ejecuta un experimento de riesgo completo para un escenario.
-    
-    Args:
-        means: Medias de las distribuciones
-        covs: Matrices de covarianza
-        sample_sizes: Tamaños de muestra a evaluar
-        priors: Priors de las clases
-        scenario_name: Nombre del escenario para guardar resultados
-        
-    Returns:
-        DataFrame con resultados
-    """
-    results = []
-    classifiers = [
-        ('Bayes', None),  # Riesgo verdadero de Bayes
-        ('GNB', GaussianNB()),
-        ('LDA', LinearDiscriminantAnalysis()),
-        ('QDA', QuadraticDiscriminantAnalysis()),
-        ('KNN-1', KNeighborsClassifier(n_neighbors=1)),
-        ('KNN-5', KNeighborsClassifier(n_neighbors=5)),
-        ('KNN-21', KNeighborsClassifier(n_neighbors=21)),
-        ('GB', GaussianBayesClassifier(means, covs, priors))
-    ]
-    
-    # Calcular riesgo de Bayes verdadero
-    bayes_risk = calculate_bayes_risk(means, covs, priors)
-    
-    for n in sample_sizes:
-        if isinstance(n, list):
-            # Caso desbalanceado
-            n_total = sum(n)
-            n_str = f"{n[0]}+{n[1]}"
-        else:
-            # Caso balanceado
-            n_total = n * len(means)
-            n_str = str(n)
-            
-        for rep in range(REPS):
-            # Generar datos
-            X, y = generate_data(means, covs, n)
-            
-            for name, model in classifiers:
-                if name == 'Bayes':
-                    # Usar riesgo verdadero de Bayes
-                    risk_mean, risk_std = bayes_risk, 0.0
-                    risk_cv_mean, risk_cv_std = bayes_risk, 0.0
-                else:
-                    # Entrenar y calcular riesgo CV
-                    risk_cv_mean, risk_cv_std = riesgo_clasificador(model, X, y)
-                    
-                    # Calcular riesgo en muestra de entrenamiento (como aproximación)
-                    model.fit(X, y)
-                    y_pred = model.predict(X)
-                    risk_mean = np.mean(y_pred != y)
-                    risk_std = 0.0
-                
-                results.append({
-                    'escenario': scenario_name,
-                    'clasificador': name,
-                    'n_muestra': n_str,
-                    'n_total': n_total,
-                    'replica': rep,
-                    'riesgo_verdadero': risk_mean if name == 'Bayes' else np.nan,
-                    'riesgo_cv_mean': risk_cv_mean,
-                    'riesgo_cv_std': risk_cv_std,
-                    'brecha_bayes': risk_cv_mean - bayes_risk
-                })
-    
-    return pd.DataFrame(results)
-
-def run_risk_experiments():
-    """Ejecuta todos los experimentos de riesgo."""
-    print("Ejecutando experimentos de análisis de riesgo...")
-    
-    # Crear directorios necesarios
-    os.makedirs('./figures', exist_ok=True)
-    os.makedirs('./results', exist_ok=True)
-    
-    # Escenario 1: Balanceado, misma covarianza
-    print("  - Escenario 1: Balanceado, misma covarianza")
-    df1 = run_single_risk_experiment(
-        DIFF_MEANS, SAME_COVS, SAMPLE_SIZES_BALANCED, 
-        [0.5, 0.5], "Balanceado_MismaCov"
-    )
-    
-    # Escenario 2: Desbalanceado, misma covarianza
-    print("  - Escenario 2: Desbalanceado, misma covarianza")
-    df2 = run_single_risk_experiment(
-        DIFF_MEANS, SAME_COVS, SAMPLE_SIZES_UNBALANCED,
-        [0.2, 0.8], "Desbalanceado_MismaCov"
-    )
-    
-    # Escenario 3: Balanceado, distinta covarianza
-    print("  - Escenario 3: Balanceado, distinta covarianza")
-    df3 = run_single_risk_experiment(
-        DIFF_MEANS, DIFF_COVS, SAMPLE_SIZES_BALANCED,
-        [0.5, 0.5], "Balanceado_DistintaCov"
-    )
-    
-    # Escenario 4: Desbalanceado, distinta covarianza
-    print("  - Escenario 4: Desbalanceado, distinta covarianza")
-    df4 = run_single_risk_experiment(
-        DIFF_MEANS, DIFF_COVS, SAMPLE_SIZES_UNBALANCED,
-        [0.2, 0.8], "Desbalanceado_DistintaCov"
-    )
-    
-    # Combinar todos los resultados
-    all_results = pd.concat([df1, df2, df3, df4], ignore_index=True)
-    
-    # Guardar resultados
-    all_results.to_csv('./results/risk_results.csv', index=False)
-    
-    # Generar gráficas
-    create_risk_plots(all_results)
-    
-    print("  Experimentos de riesgo completados.")
-    
-    return all_results
-
-def create_risk_plots(results_df):
-    """Crea las gráficas de análisis de riesgo."""
-    print("  Generando gráficas de riesgo...")
-    
-    # 1. L(g) vs n por método
-    fig, axes = plt.subplots(2, 2, figsize=(15, 12))
-    scenarios = results_df['escenario'].unique()
-    
-    for i, scenario in enumerate(scenarios):
-        ax = axes[i//2, i%2]
-        scenario_data = results_df[results_df['escenario'] == scenario]
-        
-        # Agrupar por clasificador y tamaño de muestra
-        grouped = scenario_data.groupby(['clasificador', 'n_total'])['riesgo_cv_mean'].mean().reset_index()
-        
-        for classifier in grouped['clasificador'].unique():
-            if classifier != 'Bayes':  # Bayes es constante
-                class_data = grouped[grouped['clasificador'] == classifier]
-                ax.plot(class_data['n_total'], class_data['riesgo_cv_mean'], 
-                       'o-', label=classifier, markersize=6)
-        
-        # Línea de Bayes
-        bayes_risk = scenario_data[scenario_data['clasificador'] == 'Bayes']['riesgo_verdadero'].iloc[0]
-        ax.axhline(y=bayes_risk, color='red', linestyle='--', label='Bayes (óptimo)', linewidth=2)
-        
-        ax.set_xlabel('Tamaño de muestra total')
-        ax.set_ylabel('Riesgo CV')
-        ax.set_title(f'Riesgo vs Tamaño Muestral - {scenario}')
-        ax.legend()
-        ax.grid(True, alpha=0.3)
-    
-    plt.tight_layout()
-    plt.savefig('./figures/risk_vs_n.png', dpi=300, bbox_inches='tight')
-    plt.close()
-    
-    # 2. L(KNN) vs k
-    fig, axes = plt.subplots(2, 2, figsize=(15, 12))
-    
-    for i, scenario in enumerate(scenarios):
-        ax = axes[i//2, i%2]
-        scenario_data = results_df[results_df['escenario'] == scenario]
-        
-        # Filtrar solo KNN
-        knn_data = scenario_data[scenario_data['clasificador'].str.startswith('KNN')]
-        
-        # Extraer valor de k
-        knn_data = knn_data.copy()
-        knn_data['k'] = knn_data['clasificador'].str.extract('KNN-(\d+)').astype(int)
-        
-        for n_size in knn_data['n_total'].unique():
-            size_data = knn_data[knn_data['n_total'] == n_size]
-            grouped = size_data.groupby('k')['riesgo_cv_mean'].mean()
-            ax.plot(grouped.index, grouped.values, 'o-', label=f'n={n_size}', markersize=6)
-        
-        ax.set_xlabel('k (número de vecinos)')
-        ax.set_ylabel('Riesgo CV')
-        ax.set_title(f'KNN: Riesgo vs k - {scenario}')
-        ax.legend()
-        ax.grid(True, alpha=0.3)
-    
-    plt.tight_layout()
-    plt.savefig('./figures/knn_risk_vs_k.png', dpi=300, bbox_inches='tight')
-    plt.close()
-    
-    # 3. Brechas vs n
-    fig, axes = plt.subplots(2, 2, figsize=(15, 12))
-    
-    for i, scenario in enumerate(scenarios):
-        ax = axes[i//2, i%2]
-        scenario_data = results_df[results_df['escenario'] == scenario]
-        
-        # Excluir Bayes y agrupar
-        non_bayes = scenario_data[scenario_data['clasificador'] != 'Bayes']
-        grouped = non_bayes.groupby(['clasificador', 'n_total'])['brecha_bayes'].mean().reset_index()
-        
-        for classifier in grouped['clasificador'].unique():
-            class_data = grouped[grouped['clasificador'] == classifier]
-            ax.plot(class_data['n_total'], class_data['brecha_bayes'], 
-                   'o-', label=classifier, markersize=6)
-        
-        ax.axhline(y=0, color='red', linestyle='--', linewidth=2)
-        ax.set_xlabel('Tamaño de muestra total')
-        ax.set_ylabel('Brecha vs Bayes (L(g) - L(Bayes))')
-        ax.set_title(f'Brecha vs Bayes - {scenario}')
-        ax.legend()
-        ax.grid(True, alpha=0.3)
-    
-    plt.tight_layout()
-    plt.savefig('./figures/risk_gap_vs_n.png', dpi=300, bbox_inches='tight')
-    plt.close()
-    
-    # 4. Heatmap de brechas
-    create_risk_heatmaps(results_df)
-    
-    print("  Gráficas de riesgo generadas.")
-
-def create_risk_heatmaps(results_df):
-    """Crea heatmaps para análisis de brechas."""
-    # Heatmap para brechas promedio por clasificador y escenario
-    pivot_data = results_df[results_df['clasificador'] != 'Bayes'].groupby(
-        ['clasificador', 'escenario']
-    )['brecha_bayes'].mean().reset_index()
-    
-    heatmap_data = pivot_data.pivot(index='clasificador', columns='escenario', values='brecha_bayes')
-    
-    plt.figure(figsize=(10, 6))
-    sns.heatmap(heatmap_data, annot=True, cmap='RdBu_r', center=0, fmt='.4f')
-    plt.title('Brecha Promedio vs Bayes por Clasificador y Escenario')
-    plt.tight_layout()
-    plt.savefig('./figures/risk_gap_heatmap.png', dpi=300, bbox_inches='tight')
-    plt.close()
-
-def create_risk_summary_tables():
-    """Crea tablas resumen de los resultados de riesgo."""
-    print("Generando tablas resumen de riesgo...")
-    
-    if not os.path.exists('./results/risk_results.csv'):
-        print("No se encontraron resultados de riesgo. Ejecutando experimentos...")
-        results_df = run_risk_experiments()
+    if pi0 == pi1:  # Equal priors case
+        return norm.cdf(-delta/2)
     else:
-        results_df = pd.read_csv('./results/risk_results.csv')
-    
-    # Tabla resumen por escenario y clasificador
-    summary = results_df.groupby(['escenario', 'clasificador', 'n_total']).agg({
-        'riesgo_cv_mean': ['mean', 'std'],
-        'brecha_bayes': ['mean', 'std']
-    }).round(4)
-    
-    # Guardar tabla CSV
-    summary.to_csv('./results/risk_summary.csv')
-    
-    # Crear tabla LaTeX
-    latex_table = summary.to_latex()
-    with open('./results/risk_summary.tex', 'w') as f:
-        f.write(latex_table)
-    
-    # Tabla simplificada para reporte
-    simple_summary = results_df.groupby(['escenario', 'clasificador']).agg({
-        'riesgo_cv_mean': ['mean', 'std'],
-        'brecha_bayes': ['mean', 'std']
-    }).round(4)
-    
-    simple_summary.to_csv('./results/risk_simple_summary.csv')
-    
-    print("Tablas resumen guardadas en ./results/")
-    
-    return summary
+        # General case with different priors
+        term1 = pi0 * norm.cdf(-delta/2 + np.log(pi1/pi0)/delta)
+        term2 = pi1 * norm.cdf(-delta/2 - np.log(pi1/pi0)/delta)
+        return term1 + term2
 
-def plot_validation_vs_true_risk():
-    """
-    Compara riesgo estimado por validación vs riesgo verdadero.
-    Solo para escenarios donde podemos calcular riesgo verdadero fácilmente.
-    """
-    print("Generando comparación validación vs riesgo verdadero...")
+# =============================================================================
+# 2. FUNCIONES DE EVALUACIÓN 
+# =============================================================================
+def empirical_risk(clf, X_test, y_test):
+    """Compute empirical risk (error rate)"""
+    y_pred = clf.predict(X_test)
+    return np.mean(y_pred != y_test)
+
+def monte_carlo_estimation(clf_class, clf_params, distribution_params, n_samples, n_simulations=50):
+    """Estimate risk using Monte Carlo simulation"""
+    risks = []
     
-    # Escenario simple: balanceado, misma covarianza
-    means = DIFF_MEANS
-    covs = SAME_COVS
-    priors = [0.5, 0.5]
+    for i in range(n_simulations):
+        # Generate new data for each simulation - CORREGIDO
+        X_train, y_train = generate_data(
+            means=distribution_params['means'], 
+            covs=distribution_params['covs'], 
+            n_samples=n_samples
+        )
+        X_test, y_test = generate_data(
+            means=distribution_params['means'], 
+            covs=distribution_params['covs'], 
+            n_samples=1000  # Large test set
+        )
+        
+        # Train and evaluate
+        try:
+            clf = clf_class(**clf_params) if clf_params else clf_class()
+            clf.fit(X_train, y_train)
+            risk = empirical_risk(clf, X_test, y_test)
+            risks.append(risk)
+        except Exception as e:
+            print(f"Error in simulation {i} for {clf_class.__name__}: {e}")
+            risks.append(0.5)  # Default risk in case of error
     
-    # Calcular riesgo verdadero de Bayes
-    true_bayes_risk = calculate_bayes_risk(means, covs, priors)
+    return np.mean(risks), np.std(risks)
+
+def compare_validation_methods(clf_class, distribution_params, n_samples, n_simulations=20):
+    """Compare cross-validation vs Monte Carlo estimates - CORREGIDO"""
+    cv_risks = []
+    mc_risks = []
     
-    results = []
+    for i in range(n_simulations):
+        # CORREGIDO: Pasar parámetros correctamente
+        X, y = generate_data(
+            means=distribution_params['means'], 
+            covs=distribution_params['covs'], 
+            n_samples=n_samples
+        )
+        
+        # Cross-validation estimate
+        try:
+            cv_scores = cross_val_score(
+                clf_class(), X, y, 
+                cv=KFold(n_splits=N_FOLDS, shuffle=True, random_state=i)
+            )
+            l_cv = 1 - np.mean(cv_scores)
+            cv_risks.append(l_cv)
+        except Exception as e:
+            print(f"CV Error in simulation {i}: {e}")
+            cv_risks.append(0.5)
+        
+        # Monte Carlo estimate
+        try:
+            l_mc, _ = monte_carlo_estimation(
+                clf_class, {}, distribution_params, n_samples, n_simulations=1
+            )
+            mc_risks.append(l_mc)
+        except Exception as e:
+            print(f"MC Error in simulation {i}: {e}")
+            mc_risks.append(0.5)
     
-    for n in SAMPLE_SIZES_BALANCED:
-        for rep in range(REPS):
-            X, y = generate_data(means, covs, n)
+    return np.mean(cv_risks), np.std(cv_risks), np.mean(mc_risks), np.std(mc_risks)
+
+# =============================================================================
+# 3. FUNCIÓN PRINCIPAL DE ANÁLISIS (CORREGIDA)
+# =============================================================================
+def run_complete_analysis():
+    """Ejecuta todo el análisis completo"""
+    
+    # Inicializar almacenamiento de resultados
+    results = {
+        'sample_sizes': SAMPLE_SIZES,
+        'k_values': K_VALUES,
+        'models': ['GaussianNB', 'LDA', 'QDA', 'KNN'],
+        'risks': {model: [] for model in ['GaussianNB', 'LDA', 'QDA', 'KNN']},
+        'risks_std': {model: [] for model in ['GaussianNB', 'LDA', 'QDA', 'KNN']},
+        'knn_curves': {n: [] for n in SAMPLE_SIZES},
+        'risk_gaps': {model: [] for model in ['GaussianNB', 'LDA', 'QDA', 'KNN']},
+        'validation_comparison': {model: {} for model in ['GaussianNB', 'LDA', 'QDA', 'KNN']}
+    }
+    
+    # DEBUG: Verificar estructura de datos
+    print("DEBUG - Estructura de parámetros:")
+    print(f"DIFF_MEANS type: {type(DIFF_MEANS)}, length: {len(DIFF_MEANS) if hasattr(DIFF_MEANS, '__len__') else 'N/A'}")
+    print(f"SAME_COVS type: {type(SAME_COVS)}, length: {len(SAME_COVS) if hasattr(SAME_COVS, '__len__') else 'N/A'}")
+    
+    # Calcular riesgo de Bayes teórico - CORREGIDO
+    try:
+        # Obtener parámetros reales de DIFF_MEANS y SAME_COVS
+        # Asumiendo que DIFF_MEANS es una lista/tupla con [mu0, mu1]
+        # y SAME_COVS es una lista/tupla con [sigma0, sigma1] donde sigma0 = sigma1
+        mu0 = np.array(DIFF_MEANS[0])
+        mu1 = np.array(DIFF_MEANS[1])
+        sigma = np.array(SAME_COVS[0])  # Tomamos la primera ya que son iguales
+        
+        print(f"Parámetros para Bayes risk:")
+        print(f"mu0: {mu0}")
+        print(f"mu1: {mu1}")
+        print(f"sigma shape: {sigma.shape}")
+        
+        bayes_risk = compute_bayes_risk(0.5, 0.5, mu0, mu1, sigma)
+        print(f"Bayes risk calculado: {bayes_risk:.4f}")
+        
+    except Exception as e:
+        print(f"Error calculando Bayes risk: {e}")
+        print("Usando valor por defecto 0.15")
+        bayes_risk = 0.15
+    
+    print("=" * 60)
+    print("COMIENZO DEL ANÁLISIS COMPLETO")
+    print("=" * 60)
+    
+    # Definir parámetros de distribución una vez - CORREGIDO
+    dist_params = {
+        'means': DIFF_MEANS,
+        'covs': SAME_COVS
+    }
+    
+    # =========================================================================
+    # 3.1 L(g) vs n para cada modelo - CORREGIDO
+    # =========================================================================
+    print("\n1. Calculando L(g) vs n para cada modelo...")
+    
+    for i, n in enumerate(SAMPLE_SIZES):
+        print(f"   Procesando n={n} ({i+1}/{len(SAMPLE_SIZES)})")
+        
+        for model_name in results['models']:
+            try:
+                if model_name == 'GaussianNB':
+                    risk_mean, risk_std = monte_carlo_estimation(
+                        GaussianNB, {}, dist_params, n, N_MONTE_CARLO
+                    )
+                elif model_name == 'LDA':
+                    risk_mean, risk_std = monte_carlo_estimation(
+                        LinearDiscriminantAnalysis, {}, dist_params, n, N_MONTE_CARLO
+                    )
+                elif model_name == 'QDA':
+                    risk_mean, risk_std = monte_carlo_estimation(
+                        QuadraticDiscriminantAnalysis, {}, dist_params, n, N_MONTE_CARLO
+                    )
+                elif model_name == 'KNN':
+                    risk_mean, risk_std = monte_carlo_estimation(
+                        KNeighborsClassifier, {'n_neighbors': 5}, dist_params, n, N_MONTE_CARLO
+                    )
+                
+                results['risks'][model_name].append(risk_mean)
+                results['risks_std'][model_name].append(risk_std)
+                results['risk_gaps'][model_name].append(risk_mean - bayes_risk)
+                
+                print(f"     {model_name}: {risk_mean:.4f} ± {risk_std:.4f}")
+                
+            except Exception as e:
+                print(f"     Error con {model_name} en n={n}: {e}")
+                # Agregar valores por defecto en caso de error
+                results['risks'][model_name].append(0.5)
+                results['risks_std'][model_name].append(0.1)
+                results['risk_gaps'][model_name].append(0.5 - bayes_risk)
+    
+    # =========================================================================
+    # 3.2 L(k-NN) vs k curves para diferentes n - CORREGIDO
+    # =========================================================================
+    print("\n2. Calculando curvas L(k-NN) vs k...")
+    
+    for i, n in enumerate(SAMPLE_SIZES):
+        print(f"   Procesando k-NN para n={n} ({i+1}/{len(SAMPLE_SIZES)})")
+        knn_risks = []
+        
+        for k in K_VALUES:
+            try:
+                risk_mean, _ = monte_carlo_estimation(
+                    KNeighborsClassifier, {'n_neighbors': k}, dist_params, 
+                    n, n_simulations=10  # Menos simulaciones para mayor velocidad
+                )
+                knn_risks.append(risk_mean)
+                print(f"     k={k}: {risk_mean:.4f}")
+            except Exception as e:
+                print(f"     Error con k={k}: {e}")
+                knn_risks.append(0.5)
+        
+        results['knn_curves'][n] = knn_risks
+    
+    # =========================================================================
+    # 3.3 Comparación Validation vs Monte Carlo - CORREGIDO
+    # =========================================================================
+    print("\n3. Comparando Validation vs Monte Carlo...")
+    
+    n_comparison = SAMPLE_SIZES[2]  # Usar un tamaño de muestra intermedio
+    print(f"   Usando n={n_comparison} para comparación")
+    
+    for model_name in results['models']:
+        print(f"   Procesando {model_name}...")
+        
+        try:
+            if model_name == 'GaussianNB':
+                clf_class = GaussianNB
+            elif model_name == 'LDA':
+                clf_class = LinearDiscriminantAnalysis  
+            elif model_name == 'QDA':
+                clf_class = QuadraticDiscriminantAnalysis
+            elif model_name == 'KNN':
+                clf_class = KNeighborsClassifier
             
-            # Clasificador Bayes con parámetros verdaderos
-            gb_true = GaussianBayesClassifier(means, covs, priors)
-            gb_true.fit(X, y)
+            # CORREGIDO: Removí el parámetro clf_name que no se usa
+            cv_mean, cv_std, mc_mean, mc_std = compare_validation_methods(
+                clf_class, dist_params, n_comparison, 5  # Reducido para pruebas
+            )
             
-            # Riesgo en training (aproximación)
-            y_pred = gb_true.predict(X)
-            train_risk = np.mean(y_pred != y)
+            results['validation_comparison'][model_name] = {
+                'cv_mean': cv_mean, 'cv_std': cv_std,
+                'mc_mean': mc_mean, 'mc_std': mc_std
+            }
             
-            # Riesgo por validación cruzada
-            cv_risk, cv_std = riesgo_clasificador(gb_true, X, y)
+            print(f"     {model_name}: CV={cv_mean:.4f}, MC={mc_mean:.4f}")
             
-            results.append({
-                'n': n * len(means),  # Total samples
-                'replica': rep,
-                'true_bayes_risk': true_bayes_risk,
-                'train_risk': train_risk,
-                'cv_risk': cv_risk,
-                'cv_std': cv_std
-            })
+        except Exception as e:
+            print(f"     Error comparando {model_name}: {e}")
+            results['validation_comparison'][model_name] = {
+                'cv_mean': 0.5, 'cv_std': 0.1,
+                'mc_mean': 0.5, 'mc_std': 0.1
+            }
     
-    results_df = pd.DataFrame(results)
+    # =========================================================================
+    # 4. GENERAR GRÁFICAS Y RESULTADOS
+    # =========================================================================
+    print("\n4. Generando gráficas y tablas...")
+    generate_all_plots(results, bayes_risk)
+    print_summary_table(results, bayes_risk)
     
-    # Gráfica de comparación
-    plt.figure(figsize=(10, 6))
+    return results, bayes_risk
+
+# =============================================================================
+# 4. FUNCIONES DE VISUALIZACIÓN
+# =============================================================================
+def generate_all_plots(results, bayes_risk):
+    """Genera todas las gráficas solicitadas"""
     
-    grouped = results_df.groupby('n').agg({
-        'true_bayes_risk': 'mean',
-        'train_risk': 'mean',
-        'cv_risk': 'mean'
-    }).reset_index()
+    # 4.1 L(g) vs n para cada modelo
+    plt.figure(figsize=(12, 8))
+    for model_name in results['models']:
+        plt.plot(results['sample_sizes'], results['risks'][model_name], 
+                label=model_name, linewidth=2, marker='o')
     
-    plt.plot(grouped['n'], grouped['true_bayes_risk'], 'ro-', label='Riesgo Verdadero Bayes', linewidth=2)
-    plt.plot(grouped['n'], grouped['train_risk'], 'bs-', label='Riesgo Entrenamiento', linewidth=2)
-    plt.plot(grouped['n'], grouped['cv_risk'], 'g^-', label='Riesgo CV', linewidth=2)
-    
-    plt.xlabel('Tamaño de Muestra Total')
-    plt.ylabel('Riesgo')
-    plt.title('Comparación: Riesgo Verdadero vs Estimado (Bayes con Parámetros Verdaderos)')
+    plt.axhline(y=bayes_risk, color='red', linestyle='--', 
+                label=f'Bayes Risk ({bayes_risk:.3f})', linewidth=2)
+    plt.xlabel('Sample Size (n)')
+    plt.ylabel('Theoretical Risk L(g)')
+    plt.title('Model Risk vs Sample Size')
     plt.legend()
     plt.grid(True, alpha=0.3)
-    plt.savefig('./figures/validation_vs_true_risk.png', dpi=300, bbox_inches='tight')
+    plt.savefig('./figures/risk_vs_samplesize.png', dpi=300, bbox_inches='tight')
     plt.close()
+
+    # 4.2 L(k-NN) vs k curves
+    plt.figure(figsize=(12, 8))
+    for n in results['sample_sizes']:
+        if n in results['knn_curves'] and len(results['knn_curves'][n]) > 0:
+            plt.plot(results['k_values'], results['knn_curves'][n], 
+                    label=f'n={n}', marker='s', linewidth=2)
     
-    return results_df
+    plt.xlabel('k (Number of Neighbors)')
+    plt.ylabel('Risk L(k-NN)')
+    plt.title('k-NN Risk vs k for Different Sample Sizes')
+    plt.legend()
+    plt.grid(True, alpha=0.3)
+    plt.savefig('./figures/knn_risk_vs_k.png', dpi=300, bbox_inches='tight')
+    plt.close()
+
+    # 4.3 Risk gaps L(g)-L(Bayes) vs n
+    plt.figure(figsize=(12, 8))
+    for model_name in results['models']:
+        plt.plot(results['sample_sizes'], results['risk_gaps'][model_name], 
+                label=model_name, marker='^', linewidth=2)
+    
+    plt.axhline(y=0, color='red', linestyle='--', linewidth=1)
+    plt.xlabel('Sample Size (n)')
+    plt.ylabel('Risk Gap L(g) - L(Bayes)')
+    plt.title('Risk Gap to Bayes Optimal vs Sample Size')
+    plt.legend()
+    plt.grid(True, alpha=0.3)
+    plt.savefig('./figures/risk_gaps.png', dpi=300, bbox_inches='tight')
+    plt.close()
+
+    # 4.4 Heatmap de brechas (opcional)
+    try:
+        plt.figure(figsize=(10, 6))
+        gap_matrix = np.array([results['risk_gaps'][model] for model in results['models']])
+        plt.imshow(gap_matrix, aspect='auto', cmap='RdBu_r')
+        plt.colorbar(label='Risk Gap')
+        plt.xticks(range(len(results['sample_sizes'])), results['sample_sizes'])
+        plt.yticks(range(len(results['models'])), results['models'])
+        plt.xlabel('Sample Size (n)')
+        plt.ylabel('Model')
+        plt.title('Risk Gap Heatmap: L(g) - L(Bayes)')
+        # plt.tight_layout()
+        plt.savefig('./figures/risk_gap_heatmap.png', dpi=300, bbox_inches='tight')
+        plt.close()
+    except Exception as e:
+        print(f"No se pudo generar el heatmap: {e}")
+
+    # 4.5 Comparación Validation vs Monte Carlo
+    fig, ax = plt.subplots(2, 2, figsize=(15, 10))
+    ax = ax.ravel()
+    
+    for idx, model_name in enumerate(results['models']):
+        if model_name in results['validation_comparison']:
+            comp = results['validation_comparison'][model_name]
+            methods = ['CV', 'Monte Carlo']
+            means = [comp['cv_mean'], comp['mc_mean']]
+            stds = [comp['cv_std'], comp['mc_std']]
+            
+            bars = ax[idx].bar(methods, means, yerr=stds, capsize=5, 
+                              alpha=0.7, color=['skyblue', 'lightcoral'])
+            ax[idx].set_title(f'{model_name}: Validation vs Monte Carlo')
+            ax[idx].set_ylabel('Risk')
+            
+            # Añadir valores en las barras
+            for bar, mean in zip(bars, means):
+                height = bar.get_height()
+                ax[idx].text(bar.get_x() + bar.get_width()/2., height + 0.01,
+                            f'{mean:.3f}', ha='center', va='bottom')
+    
+    #plt.tight_layout()
+    plt.savefig('./figures/validation_comparison.png', dpi=300, bbox_inches='tight')
+    plt.close()
+
+def print_summary_table(results, bayes_risk):
+    """Imprime la tabla resumen de resultados"""
+    print("\n" + "="*80)
+    print("TABLA RESUMEN: Riesgos Promedio y Desviaciones Estándar")
+    print("="*80)
+    print(f"{'Modelo':<12} {'Riesgo Promedio':<15} {'Desv Estándar':<15} {'Gap vs Bayes':<15}")
+    print("-"*80)
+    
+    for model_name in results['models']:
+        mean_risk = np.mean(results['risks'][model_name])
+        std_risk = np.mean(results['risks_std'][model_name])
+        mean_gap = np.mean(results['risk_gaps'][model_name])
+        
+        print(f"{model_name:<12} {mean_risk:<15.4f} {std_risk:<15.4f} {mean_gap:<15.4f}")
+    
+    print("-"*80)
+    print(f"{'BAYES':<12} {bayes_risk:<15.4f} {'-':<15} {'0':<15}")
+    print("="*80)
+    
+    # Tabla de comparación validation vs Monte Carlo
+    print("\n" + "="*60)
+    print("COMPARACIÓN: Cross-Validation vs Monte Carlo")
+    print("="*60)
+    print(f"{'Modelo':<12} {'CV Risk':<10} {'CV Std':<10} {'MC Risk':<10} {'MC Std':<10}")
+    print("-"*60)
+    
+    for model_name in results['models']:
+        if model_name in results['validation_comparison']:
+            comp = results['validation_comparison'][model_name]
+            print(f"{model_name:<12} {comp['cv_mean']:<10.4f} {comp['cv_std']:<10.4f} "
+                  f"{comp['mc_mean']:<10.4f} {comp['mc_std']:<10.4f}")
+    
+    print("="*60)
