@@ -72,13 +72,6 @@ def main():
     print("\n" + "="*60)
     print("ANÁLISIS COMPLETADO EXITOSAMENTE")
     print("="*60)
-    print("Se han generado las siguientes gráficas:")
-    print("1. risk_vs_samplesize.png - L(g) vs n")
-    print("2. knn_risk_vs_k.png - L(k-NN) vs k") 
-    print("3. risk_gaps.png - Brechas L(g)-L(Bayes)")
-    print("4. risk_gap_heatmap.png - Heatmap de brechas")
-    print("5. validation_comparison.png - Comparación métodos validación")
-    print("\nLos resultados se han guardado en el objeto 'results'")
 
 if __name__ == "__main__":
     main()

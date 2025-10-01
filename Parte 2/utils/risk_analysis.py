@@ -1,41 +1,41 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import seaborn as sns
 from scipy.stats import norm
 from sklearn.model_selection import cross_val_score, KFold
 from sklearn.neighbors import KNeighborsClassifier
-from sklearn.discriminant_analysis import LinearDiscriminantAnalysis, QuadraticDiscriminantAnalysis
+from sklearn.discriminant_analysis import LinearDiscriminantAnalysis,\
+    QuadraticDiscriminantAnalysis
 from sklearn.naive_bayes import GaussianNB
 from utils.distributions import generate_data
 from utils.clasificadores import GaussianBayesClassifier
 from utils.config import DIFF_MEANS, SAME_COVS, SAMPLE_SIZES_BALANCED, KS
 
-# =============================================================================
-# CONFIGURACIÓN
-# =============================================================================
+
+# Configurations
 SAMPLE_SIZES = SAMPLE_SIZES_BALANCED
-K_VALUES = KS
-N_MONTE_CARLO = 50  # Número de simulaciones Monte Carlo (reducir para pruebas)
+N_MONTE_CARLO = 50  # Número de simulaciones Monte Carlo
 N_FOLDS = 20  # Número de folds para cross-validation
 
-# =============================================================================
-# 1. FUNCIÓN PARA RIESGO DE BAYES TEÓRICO
-# =============================================================================
-def compute_bayes_risk(pi0, pi1, mu0, mu1, sigma):
-    """Compute theoretical Bayes risk for equal covariance case"""
-    delta_sq = (mu1 - mu0).T @ np.linalg.inv(sigma) @ (mu1 - mu0)
-    delta = np.sqrt(delta_sq)
+
+def compute_bayes_risk(priors, means, sigma):
+    """Compute theoretical Bayes risk for equal covariance case (two classes)"""
+    pi0, pi1 = priors
+    mu1, mu0 = means
+
+    inv = np.linalg.pinv(sigma) if np.linalg.det(sigma) == 0\
+        else np.linalg.inv(sigma)
+
+    delta = np.sqrt((mu1 - mu0).T @ inv @ (mu1 - mu0))
     
     if pi0 == pi1:  # Equal priors case
         return norm.cdf(-delta/2)
-    else:
-        # General case with different priors
+    else: # General case with different priors
         term1 = pi0 * norm.cdf(-delta/2 + np.log(pi1/pi0)/delta)
         term2 = pi1 * norm.cdf(-delta/2 - np.log(pi1/pi0)/delta)
         return term1 + term2
 
-# =============================================================================
-# 2. FUNCIONES DE EVALUACIÓN 
-# =============================================================================
+# Evaluation functions
 def empirical_risk(clf, X_test, y_test):
     """Compute empirical risk (error rate)"""
     y_pred = clf.predict(X_test)
@@ -46,7 +46,7 @@ def monte_carlo_estimation(clf_class, clf_params, distribution_params, n_samples
     risks = []
     
     for i in range(n_simulations):
-        # Generate new data for each simulation - CORREGIDO
+        # Generate new data for each simulation
         X_train, y_train = generate_data(
             means=distribution_params['means'], 
             covs=distribution_params['covs'], 
@@ -59,24 +59,18 @@ def monte_carlo_estimation(clf_class, clf_params, distribution_params, n_samples
         )
         
         # Train and evaluate
-        try:
-            clf = clf_class(**clf_params) if clf_params else clf_class()
-            clf.fit(X_train, y_train)
-            risk = empirical_risk(clf, X_test, y_test)
-            risks.append(risk)
-        except Exception as e:
-            print(f"Error in simulation {i} for {clf_class.__name__}: {e}")
-            risks.append(0.5)  # Default risk in case of error
+        clf = clf_class(**clf_params) if clf_params else clf_class()
+        clf.fit(X_train, y_train)
+        risk = empirical_risk(clf, X_test, y_test)
+        risks.append(risk)
     
     return np.mean(risks), np.std(risks)
 
 def compare_validation_methods(clf_class, distribution_params, n_samples, n_simulations=20):
     """Compare cross-validation vs Monte Carlo estimates - CORREGIDO"""
-    cv_risks = []
-    mc_risks = []
+    cv_risks, mc_risks = [], []
     
     for i in range(n_simulations):
-        # CORREGIDO: Pasar parámetros correctamente
         X, y = generate_data(
             means=distribution_params['means'], 
             covs=distribution_params['covs'], 
@@ -84,199 +78,128 @@ def compare_validation_methods(clf_class, distribution_params, n_samples, n_simu
         )
         
         # Cross-validation estimate
-        try:
-            cv_scores = cross_val_score(
-                clf_class(), X, y, 
-                cv=KFold(n_splits=N_FOLDS, shuffle=True, random_state=i)
-            )
-            l_cv = 1 - np.mean(cv_scores)
-            cv_risks.append(l_cv)
-        except Exception as e:
-            print(f"CV Error in simulation {i}: {e}")
-            cv_risks.append(0.5)
+        cv_scores = cross_val_score(
+            clf_class(), X, y, 
+            cv=KFold(n_splits=N_FOLDS, shuffle=True, random_state=i)
+        )
+        l_cv = 1 - np.mean(cv_scores)
+        cv_risks.append(l_cv)
+    
         
         # Monte Carlo estimate
-        try:
-            l_mc, _ = monte_carlo_estimation(
-                clf_class, {}, distribution_params, n_samples, n_simulations=1
-            )
-            mc_risks.append(l_mc)
-        except Exception as e:
-            print(f"MC Error in simulation {i}: {e}")
-            mc_risks.append(0.5)
+        l_mc, _ = monte_carlo_estimation(
+            clf_class, {}, distribution_params, n_samples, n_simulations=1
+        )
+        mc_risks.append(l_mc)
     
     return np.mean(cv_risks), np.std(cv_risks), np.mean(mc_risks), np.std(mc_risks)
 
-# =============================================================================
-# 3. FUNCIÓN PRINCIPAL DE ANÁLISIS (CORREGIDA)
-# =============================================================================
+
+# función para correr el analisis completo (llamar en el main.py)
 def run_complete_analysis():
     """Ejecuta todo el análisis completo"""
+
+    models = {
+        'GaussianNB': GaussianNB,
+        'LDA': LinearDiscriminantAnalysis,
+        'QDA': QuadraticDiscriminantAnalysis,
+        'KNN': KNeighborsClassifier
+    }
     
     # Inicializar almacenamiento de resultados
     results = {
         'sample_sizes': SAMPLE_SIZES,
-        'k_values': K_VALUES,
-        'models': ['GaussianNB', 'LDA', 'QDA', 'KNN'],
-        'risks': {model: [] for model in ['GaussianNB', 'LDA', 'QDA', 'KNN']},
-        'risks_std': {model: [] for model in ['GaussianNB', 'LDA', 'QDA', 'KNN']},
+        'k_values': KS,
+        'models': models.keys(),
+        'risks': {model: [] for model in models.keys()},
+        'risks_std': {model: [] for model in models.keys()},
         'knn_curves': {n: [] for n in SAMPLE_SIZES},
-        'risk_gaps': {model: [] for model in ['GaussianNB', 'LDA', 'QDA', 'KNN']},
-        'validation_comparison': {model: {} for model in ['GaussianNB', 'LDA', 'QDA', 'KNN']}
+        'risk_gaps': {model: [] for model in models.keys()},
+        'validation_comparison': {model: {} for model in models.keys()}
     }
     
-    # DEBUG: Verificar estructura de datos
-    print("DEBUG - Estructura de parámetros:")
-    print(f"DIFF_MEANS type: {type(DIFF_MEANS)}, length: {len(DIFF_MEANS) if hasattr(DIFF_MEANS, '__len__') else 'N/A'}")
-    print(f"SAME_COVS type: {type(SAME_COVS)}, length: {len(SAME_COVS) if hasattr(SAME_COVS, '__len__') else 'N/A'}")
-    
-    # Calcular riesgo de Bayes teórico - CORREGIDO
-    try:
-        # Obtener parámetros reales de DIFF_MEANS y SAME_COVS
-        # Asumiendo que DIFF_MEANS es una lista/tupla con [mu0, mu1]
-        # y SAME_COVS es una lista/tupla con [sigma0, sigma1] donde sigma0 = sigma1
-        mu0 = np.array(DIFF_MEANS[0])
-        mu1 = np.array(DIFF_MEANS[1])
-        sigma = np.array(SAME_COVS[0])  # Tomamos la primera ya que son iguales
-        
-        print(f"Parámetros para Bayes risk:")
-        print(f"mu0: {mu0}")
-        print(f"mu1: {mu1}")
-        print(f"sigma shape: {sigma.shape}")
-        
-        bayes_risk = compute_bayes_risk(0.5, 0.5, mu0, mu1, sigma)
-        print(f"Bayes risk calculado: {bayes_risk:.4f}")
-        
-    except Exception as e:
-        print(f"Error calculando Bayes risk: {e}")
-        print("Usando valor por defecto 0.15")
-        bayes_risk = 0.15
+    # Calcular riesgo de Bayes teórico
+    sigma = SAME_COVS[0]
+    print(f"Parámetros para Bayes risk:")
+    print(f"mu0: {DIFF_MEANS[0]}")
+    print(f"mu1: {DIFF_MEANS[1]}")
+    print(f"sigma:\n{sigma}")
+    bayes_risk = compute_bayes_risk([0.5, 0.5], DIFF_MEANS, sigma)
+    print(f"Bayes risk calculado: {bayes_risk:.4f}")
+
     
     print("=" * 60)
-    print("COMIENZO DEL ANÁLISIS COMPLETO")
+    print("COMIENZO DEL ANÁLISIS DE RIESGO COMPLETO")
     print("=" * 60)
     
-    # Definir parámetros de distribución una vez - CORREGIDO
-    dist_params = {
-        'means': DIFF_MEANS,
-        'covs': SAME_COVS
-    }
+    # Definir parámetros de distribución
+    dist_params = {'means': DIFF_MEANS,'covs': SAME_COVS}
     
-    # =========================================================================
-    # 3.1 L(g) vs n para cada modelo - CORREGIDO
-    # =========================================================================
+    # L(g) vs n para cada modelo
     print("\n1. Calculando L(g) vs n para cada modelo...")
     
     for i, n in enumerate(SAMPLE_SIZES):
-        print(f"   Procesando n={n} ({i+1}/{len(SAMPLE_SIZES)})")
+        print(f"\tProcesando n={n} ({i+1}/{len(SAMPLE_SIZES)})")
         
         for model_name in results['models']:
-            try:
-                if model_name == 'GaussianNB':
-                    risk_mean, risk_std = monte_carlo_estimation(
-                        GaussianNB, {}, dist_params, n, N_MONTE_CARLO
-                    )
-                elif model_name == 'LDA':
-                    risk_mean, risk_std = monte_carlo_estimation(
-                        LinearDiscriminantAnalysis, {}, dist_params, n, N_MONTE_CARLO
-                    )
-                elif model_name == 'QDA':
-                    risk_mean, risk_std = monte_carlo_estimation(
-                        QuadraticDiscriminantAnalysis, {}, dist_params, n, N_MONTE_CARLO
-                    )
-                elif model_name == 'KNN':
-                    risk_mean, risk_std = monte_carlo_estimation(
-                        KNeighborsClassifier, {'n_neighbors': 5}, dist_params, n, N_MONTE_CARLO
-                    )
-                
-                results['risks'][model_name].append(risk_mean)
-                results['risks_std'][model_name].append(risk_std)
-                results['risk_gaps'][model_name].append(risk_mean - bayes_risk)
-                
-                print(f"     {model_name}: {risk_mean:.4f} ± {risk_std:.4f}")
-                
-            except Exception as e:
-                print(f"     Error con {model_name} en n={n}: {e}")
-                # Agregar valores por defecto en caso de error
-                results['risks'][model_name].append(0.5)
-                results['risks_std'][model_name].append(0.1)
-                results['risk_gaps'][model_name].append(0.5 - bayes_risk)
-    
-    # =========================================================================
-    # 3.2 L(k-NN) vs k curves para diferentes n - CORREGIDO
-    # =========================================================================
+            risk_mean, risk_std = monte_carlo_estimation(
+                models[model_name], {}, dist_params, n, N_MONTE_CARLO
+            )
+            
+            results['risks'][model_name].append(risk_mean)
+            results['risks_std'][model_name].append(risk_std)
+            results['risk_gaps'][model_name].append(risk_mean - bayes_risk)
+            
+            print(f"\t\t{model_name}: {risk_mean:.4f} +/- {risk_std:.4f}")
+          
+
+    # L(k-NN) vs k curves para diferentes n
     print("\n2. Calculando curvas L(k-NN) vs k...")
     
     for i, n in enumerate(SAMPLE_SIZES):
-        print(f"   Procesando k-NN para n={n} ({i+1}/{len(SAMPLE_SIZES)})")
+        print(f"\tProcesando k-NN para n={n} ({i+1}/{len(SAMPLE_SIZES)})")
         knn_risks = []
         
-        for k in K_VALUES:
-            try:
-                risk_mean, _ = monte_carlo_estimation(
-                    KNeighborsClassifier, {'n_neighbors': k}, dist_params, 
-                    n, n_simulations=10  # Menos simulaciones para mayor velocidad
-                )
-                knn_risks.append(risk_mean)
-                print(f"     k={k}: {risk_mean:.4f}")
-            except Exception as e:
-                print(f"     Error con k={k}: {e}")
-                knn_risks.append(0.5)
+        for k in KS:
+            risk_mean, _ = monte_carlo_estimation(
+                KNeighborsClassifier, {'n_neighbors': k}, dist_params, 
+                n, n_simulations=10  # Menos simulaciones para mayor velocidad
+            )
+            knn_risks.append(risk_mean)
+            print(f"\t\tk={k}: {risk_mean:.4f}")
         
         results['knn_curves'][n] = knn_risks
     
-    # =========================================================================
-    # 3.3 Comparación Validation vs Monte Carlo - CORREGIDO
-    # =========================================================================
+    
+    # Comparación Validation vs Monte Carlo
     print("\n3. Comparando Validation vs Monte Carlo...")
     
     n_comparison = SAMPLE_SIZES[2]  # Usar un tamaño de muestra intermedio
-    print(f"   Usando n={n_comparison} para comparación")
+    print(f"\tUsando n={n_comparison} para comparación")
     
     for model_name in results['models']:
-        print(f"   Procesando {model_name}...")
+        clf_class = models[model_name]
         
-        try:
-            if model_name == 'GaussianNB':
-                clf_class = GaussianNB
-            elif model_name == 'LDA':
-                clf_class = LinearDiscriminantAnalysis  
-            elif model_name == 'QDA':
-                clf_class = QuadraticDiscriminantAnalysis
-            elif model_name == 'KNN':
-                clf_class = KNeighborsClassifier
-            
-            # CORREGIDO: Removí el parámetro clf_name que no se usa
-            cv_mean, cv_std, mc_mean, mc_std = compare_validation_methods(
-                clf_class, dist_params, n_comparison, 5  # Reducido para pruebas
-            )
-            
-            results['validation_comparison'][model_name] = {
-                'cv_mean': cv_mean, 'cv_std': cv_std,
-                'mc_mean': mc_mean, 'mc_std': mc_std
-            }
-            
-            print(f"     {model_name}: CV={cv_mean:.4f}, MC={mc_mean:.4f}")
-            
-        except Exception as e:
-            print(f"     Error comparando {model_name}: {e}")
-            results['validation_comparison'][model_name] = {
-                'cv_mean': 0.5, 'cv_std': 0.1,
-                'mc_mean': 0.5, 'mc_std': 0.1
-            }
+        cv_mean, cv_std, mc_mean, mc_std = compare_validation_methods(
+            clf_class, dist_params, n_comparison, 5  # Reducido para pruebas
+        )
+        
+        results['validation_comparison'][model_name] = {
+            'cv_mean': cv_mean, 'cv_std': cv_std,
+            'mc_mean': mc_mean, 'mc_std': mc_std
+        }
+        
+        print(f"\t\t{model_name}: CV={cv_mean:.4f}, MC={mc_mean:.4f}")
     
-    # =========================================================================
-    # 4. GENERAR GRÁFICAS Y RESULTADOS
-    # =========================================================================
+    # generar graficas y mostrar tablas
     print("\n4. Generando gráficas y tablas...")
     generate_all_plots(results, bayes_risk)
     print_summary_table(results, bayes_risk)
     
     return results, bayes_risk
 
-# =============================================================================
-# 4. FUNCIONES DE VISUALIZACIÓN
-# =============================================================================
+
+# funciones de visualizacion
 def generate_all_plots(results, bayes_risk):
     """Genera todas las gráficas solicitadas"""
     
@@ -288,8 +211,7 @@ def generate_all_plots(results, bayes_risk):
     
     plt.axhline(y=bayes_risk, color='red', linestyle='--', 
                 label=f'Bayes Risk ({bayes_risk:.3f})', linewidth=2)
-    plt.xlabel('Sample Size (n)')
-    plt.ylabel('Theoretical Risk L(g)')
+    plt.xlabel('Sample Size (n)') ; plt.ylabel('Theoretical Risk L(g)')
     plt.title('Model Risk vs Sample Size')
     plt.legend()
     plt.grid(True, alpha=0.3)
@@ -326,22 +248,17 @@ def generate_all_plots(results, bayes_risk):
     plt.savefig('./figures/risk_gaps.png', dpi=300, bbox_inches='tight')
     plt.close()
 
-    # 4.4 Heatmap de brechas (opcional)
-    try:
-        plt.figure(figsize=(10, 6))
-        gap_matrix = np.array([results['risk_gaps'][model] for model in results['models']])
-        plt.imshow(gap_matrix, aspect='auto', cmap='RdBu_r')
-        plt.colorbar(label='Risk Gap')
-        plt.xticks(range(len(results['sample_sizes'])), results['sample_sizes'])
-        plt.yticks(range(len(results['models'])), results['models'])
-        plt.xlabel('Sample Size (n)')
-        plt.ylabel('Model')
-        plt.title('Risk Gap Heatmap: L(g) - L(Bayes)')
-        # plt.tight_layout()
-        plt.savefig('./figures/risk_gap_heatmap.png', dpi=300, bbox_inches='tight')
-        plt.close()
-    except Exception as e:
-        print(f"No se pudo generar el heatmap: {e}")
+    # 4.4 Heatmap de brechas 
+    plt.figure(figsize=(10, 6))
+    gap_matrix = np.array([results['risk_gaps'][model]\
+        for model in results['models']])
+    sns.heatmap(gap_matrix, cmap='RdBu_r', annot=True, fmt=".3f", xticklabels\
+        =results['sample_sizes'], yticklabels=results['models'])
+    plt.xlabel('Sample Size (n)') ; plt.ylabel('Model')
+    plt.title('Risk Gap Heatmap: L(g) - L(Bayes)')
+    plt.savefig('./figures/risk_gap_heatmap.png', dpi=300, bbox_inches='tight')
+    plt.close()
+    
 
     # 4.5 Comparación Validation vs Monte Carlo
     fig, ax = plt.subplots(2, 2, figsize=(15, 10))
@@ -365,7 +282,6 @@ def generate_all_plots(results, bayes_risk):
                 ax[idx].text(bar.get_x() + bar.get_width()/2., height + 0.01,
                             f'{mean:.3f}', ha='center', va='bottom')
     
-    #plt.tight_layout()
     plt.savefig('./figures/validation_comparison.png', dpi=300, bbox_inches='tight')
     plt.close()
 
