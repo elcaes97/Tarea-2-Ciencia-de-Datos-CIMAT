@@ -1,0 +1,356 @@
+\documentclass[10pt]{article}
+\usepackage[spanish]{babel}
+\usepackage[a4paper, tmargin=0.75in, lmargin=0.80in, rmargin=0.80in, bmargin=1in]{geometry}
+\usepackage{hyperref}
+%\usepackage{multicol}
+\hypersetup{
+    colorlinks=true,
+    linkcolor=black,
+    filecolor=magenta,      
+    urlcolor=blue,
+    citecolor=black,
+}
+%\usepackage[numbers,sort&compress]{natbib} % for a numerical citation list
+\usepackage{natbib} % to cite references by surname and year
+\usepackage{graphicx}
+\usepackage{amsfonts}
+\usepackage{amsthm}
+\usepackage{amssymb}
+\usepackage{lipsum}
+\usepackage{amsmath}
+\usepackage{tabularx}
+\usepackage{pdflscape}
+\usepackage{booktabs}
+\usepackage{bbm}
+\usepackage{listings}
+\usepackage{xcolor}
+
+\usepackage[
+  backend=biber,
+  style=alphabetic,
+  citestyle=alphabetic,
+  doi=true,
+  url=true,
+  isbn=false,
+  eprint=false,
+  maxbibnames=99
+]{biblatex}
+
+\addbibresource{referencias.bib}
+
+% Definimos colores estilo "terminal con fondo negro"
+\definecolor{backcolour}{rgb}{0.1,0.1,0.1}
+\definecolor{codegreen}{rgb}{0,0.8,0}
+\definecolor{codegray}{rgb}{0.7,0.7,0.7}
+\definecolor{codepurple}{rgb}{0.8,0.6,1}
+\definecolor{codewhite}{rgb}{1,1,1}
+
+
+\lstdefinestyle{mypython}{
+    backgroundcolor=\color{backcolour},
+    basicstyle=\ttfamily\scriptsize\color{codewhite},
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{codepurple},
+    stringstyle=\color{codegreen},
+    numbers=left,
+    numberstyle=\tiny\color{codegray},
+    breaklines=true,
+    breakatwhitespace=false,
+    showstringspaces=false,
+    tabsize=4
+}
+
+\lstset{style=mypython}
+
+
+
+
+
+
+
+\pagestyle{empty}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% ENTER SOME IMPORTANT INFORMATION
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newcommand{\studentname}{Sánchez, Hazel; Hernández, Debany ; Canché, Elías}
+\newcommand{\researchcentre}{Maestría en Probabilidad y Estadística}
+\newcommand{\institution}{Centro de Investigación en Matemáticas (CIMAT)}
+\newcommand{\projecttitle}{Tarea 2}
+\newcommand{\supervisor}{Dr. Marco Antonio Aquino López}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{document}
+
+\begin{center}
+{\Large{Proyecto 2: Clasificación Supervisada}} \\
+\vspace{2mm}
+{\Large{Introducción a la Ciencia de Datos}} \\
+\end{center}
+
+\vspace{5mm}
+\hrule
+\vspace{1mm}
+\hrule
+
+\vspace{3mm}
+\begin{tabular}{ll} 
+Integrantes:           	        & {\studentname}   \\ 
+Programa Educativo: 	        & {\researchcentre}  \\ 
+Institución:                 & {\institution}  \\
+Profesor: 	                 & {\supervisor}  \\ 
+\end{tabular}
+
+\vspace{3mm}
+\hrule
+\vspace{1mm}
+\hrule
+
+
+\section{Introducción}
+En el marketing digital y la gestión de relaciones con el cliente, la capacidad de predecir comportamientos del consumidor es una herramienta importante para las empresas. A diferencia del marketing convencional, el marketing digital permite una interacción directa y personalizada con los consumidores facilitando la promoción de productos y servicios, además de la recolección de datos sobre el comportamiento y las preferencias del público objetivo. En un entorno comercial cada vez más competido, esta capacidad de capturar y analizar información se traduce en ventajas de mercado.\\
+
+La Ciencia de Datos, con técnicas de clasificación supervisada, proporciona herramientas para identificar patrones ocultos, predecir comportamientos futuros y optimizar recursos, también es posible obtener modelos predictivos que identifican clientes con mayor probabilidad de responder positivamente a una campaña, lo cual podría maximizar el retorno de inversión y fortalecer las estrategias de fidelización del cliente.\\
+
+En este trabajo aplicamos diversos métodos de clasificación supervisada sobre la base de datos ``Bank Marketing'', la cual documenta campañas de marketing directo realizadas por un banco portugués entre 2008 y 2013, cuyo objetivo fundamental fue identificar clientes propensos a suscribir depósitos a plazo. Además de la implementación técnica, proponemos examinamos cómo la naturaleza de los datos influye en el desempeño de cada clasificador. \\
+
+
+\section{Exploración inicial de los datos}\label{sec:dataset}
+
+\subsection{\textit{Bank Marketing Dataset}.}
+
+El \textbf{Bank Marketing Dataset} (\texttt{bank-full.csv}) fue desarrollado y publicado por el Instituto de Sistemas e Informática (INESC) de la Universidad de Lisboa, Portugal, como parte de un estudio longitudinal sobre efectividad de campañas de marketing en el sector bancario. Los datos fueron recolectados entre mayo de 2008 y noviembre de 2013 a través de campañas de marketing telefónico realizadas por una institución bancaria portuguesa y contiene información sobre clientes y el resultado de campañas de marketing telefónicas.\\
+
+La estructura general de la base de datos consta de 45,211 observaciones, 16 variables predictoras y 1 variable de respuesta que indica si el cliente aceptó (\texttt{yes}) o no (\texttt{no}) contratar el depósito a plazo. En la tabla [\ref{tab:clasificacion_predictores}] se describen a detalle las variables, mientras que en las tablas [\ref{tab:estadisticas_numericas}] y [\ref{tab:resumen_categoricas}] se muestra un resumen sobre la información de la base de datos respecto a cada variable.\\
+
+\begin{table}[h!]
+\centering
+\caption{Clasificación de Variables Predictoras del Bank Marketing Dataset}
+\label{tab:clasificacion_predictores}
+\begin{tabular}{p{1.7cm} p{1.8cm} p{1.2cm} p{9.4cm}}
+\toprule
+\textbf{Variable} & \textbf{Tipo} & \textbf{Escala} & \textbf{Descripción y Características} \\
+\midrule
+age & Numérica & Continua & Edad del cliente (17-98 años). \\
+job & Categórica & Nominal & Ocupación 12 categorías. \\
+marital & Categórica & Nominal & Estado civil: 'divorced', 'married', 'single', 'unknown'. \\
+education & Categórica & Ordinal & Nivel educativo: 'unknown', 'secondary', 'primary', 'tertiary'. \\
+default & Categórica & Ordinal & Crédito en mora: 'no', 'yes', 'unknown'. \\
+balance & Numérica & Discreta & Saldo promedio anual\\
+housing & Categórica & Ordinal & Préstamo hipotecario: 'no', 'yes', 'unknown'.\\
+loan & Categórica & Ordinal & Préstamo personal: 'no', 'yes', 'unknown'. \\
+contact & Categórica & Nominal & Tipo de contacto: 'cellular', 'telephone'. \\
+day & Numérica & Discreta & Día del mes último contacto. \\
+month & Categórica & Ordinal & Mes último contacto: 'jan' a 'dec'. \\
+duration & Numérica & Continua & Duración de contacto (segundos). \\
+campaign & Numérica & Discreta & Número de contactos en campaña actual. \\
+pdays & Numérica & Discreta & Días desde último contacto. \\
+previous & Numérica & Discreta & Número de contactos anteriores. \\
+poutcome & Categórica & Nominal & Resultado campaña anterior: 'failure', 'nonexistent', 'success'. \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[h!]
+\centering
+\caption{Estadísticas Descriptivas de Variables Numéricas}
+\label{tab:estadisticas_numericas}
+\begin{tabular}{lrrrr}
+\hline
+\textbf{Variable} & \textbf{Media} & \textbf{Desv. Est.} & \textbf{Mínimo} & \textbf{Máximo}  \\
+\hline
+age & 40.94 & 10.62 & 17 & 98  \\
+balance & 1362.27 & 3044.77 &-8019 & 102127 \\
+duration & 258.28 & 259.28 & 0 & 4918  \\
+campaign & 2.76 & 3.10 & 1 & 63  \\
+pdays & 962.48 & 186.91 & 0 & 999  \\
+previous & 0.17 & 0.49 & 0 & 7  \\
+\hline
+\end{tabular}
+\end{table}
+
+
+
+\begin{table}[h!]
+\centering
+\caption{Resumen Estadístico de Variables Categóricas}
+\label{tab:resumen_categoricas}
+\begin{tabular}{cccc|cccc}
+\toprule
+\textbf{Variable} & \textbf{Categoría} & \textbf{Conteo} & \textbf{Porcentaje} &\textbf{Variable} & \textbf{Categoría} & \textbf{Conteo} & \textbf{Porcentaje} \\
+\midrule
+job & blue-collar   & 9732  & 21.53 & marital & married   & 27214 & 60.19 \\
+job & management    & 9458  & 20.92 & marital & single    & 12790 & 28.29 \\
+job & technician    & 7597  & 16.80 & marital & divorced  &  5207 & 11.52 \\
+job & admin.        & 5171  & 11.44 & education & secondary & 23202 & 51.32 \\
+job & services      & 4154  &  9.19 & education & tertiary  & 13301 & 29.42 \\
+job & retired       & 2264  &  5.01 & education & primary   &  6851 & 15.15 \\
+job & self-employed & 1579  &  3.49 & education & unknown   &  1857 &  4.11 \\
+job & entrepreneur  & 1487  &  3.29 & housing & yes        & 25130 & 55.58 \\
+job & unemployed    & 1303  &  2.88 & housing & no         & 20081 & 44.42 \\
+job & housemaid     & 1240  &  2.74 & month   & may        & 13766 & 30.45\\
+job & student       &  938  &  2.07 & month   & jul        &  6895 & 15.25\\
+job & unknown       &  288  &  0.64 & month   & aug        &  6247 & 13.82\\
+loan   & yes        &  7244 & 16.02 & month   & jun        &  5341 & 11.81\\
+loan   & no         & 37967 & 83.98 & month   & nov        &  3970 &  8.78\\    
+contact & cellular   & 29285 & 64.77 &month   & apr        &  2932 &  6.49  \\
+contact & unknown    & 13020 & 28.80 &month   & feb        &  2649 &  5.86  \\
+contact & telephone  &  2906 &  6.43 &month   & jan        &  1403 &  3.10  \\
+poutcome & unknown   & 36959 & 81.75 &month   & oct        &   738 &  1.63  \\
+poutcome & failure   &  4901 & 10.84 &month   & sep        &   579 &  1.28  \\
+poutcome & other     &  1840 &  4.07 &month   & mar        &   477 &  1.06  \\
+poutcome & success   &  1511 &  3.34 &month   & dec        &   214 &  0.47  \\
+default & no         & 44396 & 98.20 &        &            &       &    \\
+default & yes        &   815 &  1.80 &        &            &       &     \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+El análisis exploratorio reveló un problema de desbalance en la variable de respuesta, teniendo 88.30\% de ``no'' contra el 11.7\% de ``yes''; dado que es un balance moderado, no se emplearán técnicas para balancear pero en la evaluación de la clasificación se utilizarán métricas como 'precision', 'recall', 'f1-score', 'roc\_auc' y no 'accuracy'.\\
+
+No se encontraron registros repetidos y respecto a los \textbf{valores faltantes}, no se detectaron celdas con \texttt{NaN}. Sin embargo, algunas variables categóricas presentan la categoría \texttt{unknown}, la cual representa información faltante, los detalles de ``unknown'' por categoría se puede ver en la tabla [\ref{tab:unknown por variable}]. Dado que el porcentaje de `unknown' en la variable job es bajo y no hay un patrón claro que justifique la falta de información entonces pueden ser considerados MCAR. Por su parte, en la variable contact (medio de contacto) no puede faltar aleatoriamente, ya que si un cliente es contactado entonces se debe conocer el medio, por lo tanto esta variable tiene datos MNAR. De la misma manera en education, son MNAR pues algunas veces las personas prefieren no decir su grado académico por no sentirse cómodos. Por último,  poutcome tiene datos faltantes MNAR pues al considerar a las campañas, independientes entre sí, entonces los clientes pueden ser la primera vez que participan, por lo que, en este sentido, pueden incluso considerarse `nonexistent'. \\
+
+Dada la discusión anterior, se toma la decisión de imputar los datos mediante la moda, para las variables job, education; mientras que para contact y poutcome se consideran categorías, pues pueden haber situaciones que no se describan con las categorías que ya existen y esto puede ser informativo para los modelos de clasificación.\\
+
+
+
+\begin{table}[h!]
+\centering
+\caption{\textbf{Unknown} por variable}
+\label{tab:unknown por variable}
+\begin{tabular}{ccc|ccc}
+\toprule
+\textbf{Variable}  & \textbf{Conteo} & \textbf{Porcentaje} &\textbf{Variable} & \textbf{Conteo} & \textbf{Porcentaje} \\
+\midrule
+job       &   288  &  0.637013 & education &  1857  &  4.107407 \\
+contact   & 13020  & 28.798301 & poutcome  & 36959  & 81.747805 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+
+
+%\newpage
+\section{Preprocesamiento General}
+El preprocesamiento tiene como finalidad transformar la base de datos \textbf{Bank Marketing} (\texttt{bank-full.csv} en una matriz de diseño adecuado para el modelado supervisado. En particular, buscamos
+\begin{itemize}
+    \item[i)] Representar de forma numérica las variables categóricas preservando su información, 
+    \item[ii)] Homogenizar la escala de las variables numéricas para algoritmos sensibles a la magnitud, 
+    \item[iii)] Separar correctamente predictores $X$ y respuesta $y$ evitando fugas de información. 
+\end{itemize}
+
+Como paso inicial, se normalizó el formato de las variables categóricas (\textit{trimming} de espacios y conversión a minúsculas) para evitar duplicidades por diferencias de uso de mayúsculas o espacios, mientras que la variable de respuesta \(\texttt{y}\) se codificó como binaria $(0=\texttt{no}$, $1=\texttt{yes}$). También se revisaron las correlaciones de ``y'' con las variables numéricas, las cuales están en la tabla [\ref{tab:correlaciones numericas}]. \\
+
+\begin{table}[h!]
+\centering
+\caption{Correlaciones con ``y''}
+\label{tab:correlaciones numericas}
+\begin{tabular}{cc|cc|cc}
+\toprule
+\textbf{Variable}  & \textbf{Correlación} &\textbf{Variable}  & \textbf{Correlación}&\textbf{Variable}  & \textbf{Correlación} \\
+\midrule
+duration   & 0.394521 & campaign   & 0.073172  & day  & 0.028348 \\
+pdays      & 0.103621 & balance    & 0.052838  age    & 0.025155   \\
+previous   & 0.093236 &         & & & \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+
+
+
+
+
+
+
+Por descripción de la variable `duration', esta se obtiene después del contacto con el cliente, por lo tanto no tiene una verdadera capacidad predictiva y además, como se puede observar en la tabla [\ref{tab:correlaciones numericas}], `duration' tiene alta correlación con `y' por lo que puede viciar el análisis, por lo tanto se toma la decisión que eliminarla.\\
+
+Este ha sido un preprocesamiento general y ya que cada método tiene su propia forma de preparar los datos, en las siguientes secciones se explicará el preprocesamiento restante para cada método.
+
+
+
+
+
+
+\section{Implementación de modelos}
+
+\subsection{Naive Bayes}
+
+
+
+
+
+
+
+
+
+
+
+\newpage
+\subsection*{Codificación de variables categóricas}
+Las variables cualitativas (\texttt{job}, \texttt{marital}, \texttt{education}, \texttt{contact}, \texttt{month}, \texttt{poutcome}, entre otras) se trataron como nominales y se transformaron mediante \textbf{One-Hot Encoding} (creación de indicadores binarios por categoría). Esta estrategia nos ayuda a:  
+\begin{itemize}
+    \item Evitar imponer un orden arbitrario sobre categorías no ordinales.
+    \item Permite a los modelos lineales asignar efectos específicos por categoría.
+    \item Facilita la interpretación al nivel de categoría (coeficientes por indicador).
+\end{itemize}
+
+Para garantizar una matriz de diseño de \emph{rango completo}, se utilizó la opción \texttt{drop\_first=True}, eliminando una categoría de referencia por variable (conocido como \emph{dummy variable trap}). En términos prácticos, si \texttt{marital} tiene categorías \{\texttt{married}, \texttt{single}, \texttt{divorced}\}, tras la codificación con referencia en \texttt{married} se generan dos columnas (\texttt{marital\_single}, \texttt{marital\_divorced}); un registro con ambos indicadores en \(0\) se interpreta como la categoría de referencia (\texttt{married}). 
+
+\paragraph{Tratamiento de la categoría \texttt{unknown}.}
+En este conjunto de datos, la ausencia de información mencionamos que no aparece como \(NaN\), sino como la etiqueta \texttt{unknown} en varias variables categóricas.Para esto, se decidió \textbf{conservar \texttt{unknown} como categoría explícita} por tres motivos:
+\begin{itemize}
+    \item[i)]su frecuencia es no despreciable y, por lo tanto, informativa; 
+    \item[ii)] evitar imputaciones potencialmente sesgadas al desconocer el mecanismo de ausencia; 
+    \item[iii] permitir que el modelo \emph{aprenda} si la condición de desconocido posee valor predictivo propio. 
+\end{itemize}
+Alternativamente, podría imputarse la moda o agruparse categorías raras en una clase \texttt{other}; estas variantes son útiles si se busca compactar dimensionalidad o si la dispersión de clases induce esparsidad excesiva.
+
+\subsection*{Escalado de variables numéricas}
+Las variables numéricas (\texttt{age}, \texttt{balance}, \texttt{day}, \texttt{duration}\footnote{La variable \texttt{duration} se registra al final de la llamada y puede inducir fuga de información si se usa para predecir el éxito de la campaña antes o durante la llamada. Por ello, aunque se reporta en la exploración, suele \emph{excluirse} como predictor en modelos destinados a la toma de decisión previa.}, \texttt{campaign}, \texttt{pdays}, \texttt{previous}, etc.) se estandarizaron con \textbf{StandardScaler}, es decir, cada columna \(x\) se transformó a:
+\[
+z \;=\; \frac{x - \mu}{\sigma},
+\]
+donde \(\mu\) es la media y \(\sigma\) la desviación estándar de la variable. Esta normalización centra las variables en media \(0\) y varianza unitaria, lo que:
+\begin{enumerate}
+    \item Evita que magnitudes grandes (\texttt{balance}) dominen sobre otras (\texttt{campaign}).
+    \item Mejora la estabilidad numérica y la convergencia en modelos como Regresión Logística y SVM.
+    \item Hace comparables los coeficientes (en modelos lineales) en términos de desviaciones estándar.
+\end{enumerate}
+La interpretación de un valor estandarizado es directa: un \(z=1.2\) en \texttt{age} indica que el individuo está \(1.2\) desviaciones estándar \emph{por encima} de la media de edad; un \(z=-0.5\) en \texttt{balance} indica que está \(0.5\) desviaciones estándar \emph{por debajo} de su media.
+
+\subsection*{Separación de \(X\) e \(y\) y dimensiones resultantes}
+Tras la codificación y el escalado, se separaron los predictores en \(X\) y la respuesta en \(y\) (con \(\texttt{y}\in\{0,1\}\)). La matriz \(X\) resultante contiene tanto las variables numéricas estandarizadas como los indicadores (\emph{dummies}) generados por One-Hot Encoding. En nuestra ejecución, se obtuvieron dimensiones del tipo:
+\[
+X \in \mathbb{R}^{n \times p},\quad y \in \{0,1\}^{n},
+\]
+donde \(n\) es el número de observaciones (\(n=45{,}211\)) y \(p\) depende del número de categorías activas tras la codificación (puede superar varias decenas). El chequeo de \texttt{shape} corrobora la consistencia entre filas de \(X\) y longitud de \(y\).
+
+\subsection*{Buenas prácticas y control de fuga de información}
+Para una evaluación honesta del desempeño, el ajuste (\emph{fit}) de transformaciones debe realizarse \emph{exclusivamente} sobre el conjunto de entrenamiento y luego aplicarse (\emph{transform}) al de validación/prueba. Esto incluye el cálculo de medias y desviaciones del escalado así como el mapeo de categorías en One-Hot. En la implementación, esto se logra de forma segura mediante \emph{pipelines} que encadenan \textit{encoder} y \textit{scaler} con el estimador final. Asimismo, se recomienda evaluar la exclusión de \texttt{duration} para escenarios de predicción en tiempo real y considerar técnicas para manejar el desbalance de clases (métricas como F1/recall, \emph{class weights} o remuestreo).
+
+
+
+\section{Modelado}
+
+
+
+
+
+
+
+
+
+\end{document}
