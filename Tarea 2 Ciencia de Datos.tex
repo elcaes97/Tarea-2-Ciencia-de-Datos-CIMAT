@@ -519,29 +519,38 @@ Para clases desbalanceadas se observan las siguientes comparaciones en la Figura
     \label{fig:mc-vs-cv}
 \end{figure}
 
+\begin{table}[!ht]
+    \centering
+    \caption{Resumen: Riesgos Promedio y Desviaciones Estándar}
+    \label{tab:riesgos_promedio}
+    \begin{tabular}{lccc}
+        \hline
+        \textbf{Modelo} & \textbf{Riesgo Promedio} & \textbf{Desv Estándar} & \textbf{Gap vs Bayes} \\
+        \hline
+        GaussianNB & 0.2435 & 0.0108 & 0.0037 \\
+        LDA & 0.2423 & 0.0103 & 0.0026 \\
+        QDA & 0.2441 & 0.0098 & 0.0043 \\
+        KNN & 0.2784 & 0.0161 & 0.0386 \\
+        \hline
+        BAYES & 0.2398 & - & 0 \\
+        \hline
+    \end{tabular}
+\end{table}
 
-% ================================================================================
-% TABLA RESUMEN: Riesgos Promedio y Desviaciones Estándar
-% ================================================================================
-% Modelo       Riesgo Promedio Desv Estándar   Gap vs Bayes
-% --------------------------------------------------------------------------------
-% GaussianNB   0.2435          0.0108          0.0037
-% LDA          0.2423          0.0103          0.0026
-% QDA          0.2441          0.0098          0.0043
-% KNN          0.2784          0.0161          0.0386
-% --------------------------------------------------------------------------------
-% BAYES        0.2398          -               0
-% ================================================================================
-
-% ============================================================
-% COMPARACIÓN: Cross-Validation vs Monte Carlo
-% ============================================================
-% Modelo       CV Risk    CV Std     MC Risk    MC Std
-% ------------------------------------------------------------
-% GaussianNB   0.2460     0.0155     0.2359     0.0049
-% LDA          0.2310     0.0284     0.2430     0.0108
-% QDA          0.2350     0.0173     0.2351     0.0091
-% KNN          0.2920     0.0410     0.2774     0.0128
-% ============================================================
+\begin{table}[!ht]
+    \centering
+    \caption{Comparación: Cross-Validation vs Monte Carlo}
+    \label{tab:comparacion_cv_mc}
+    \begin{tabular}{lcccc}
+        \hline
+        \textbf{Modelo} & \textbf{CV Risk} & \textbf{CV Std} & \textbf{MC Risk} & \textbf{MC Std} \\
+        \hline
+        GaussianNB & 0.2460 & 0.0155 & 0.2359 & 0.0049 \\
+        LDA & 0.2310 & 0.0284 & 0.2430 & 0.0108 \\
+        QDA & 0.2350 & 0.0173 & 0.2351 & 0.0091 \\
+        KNN & 0.2920 & 0.0410 & 0.2774 & 0.0128 \\
+        \hline
+    \end{tabular}
+\end{table}
 
 \end{document}
