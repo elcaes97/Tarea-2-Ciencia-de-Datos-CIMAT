@@ -7,7 +7,7 @@ Autores: Debany Hernández, Elías Canche, Hazel Sánchez
 
 - **Análisis.py**: preliminar con prácticas anteriores, auxiliar para conformar el archivo `tarea_2_cdd.py`.  
 - **Exploratorio.py**: auxiliar, al igual que `Análisis.py`.  
-- **Tarea 2 Ciencia de Datos.pdf**: contiene los reportes de la Parte I y Parte II.  
+- **Tarea 2 Ciencia de Datos.pdf**: contiene los reportes de la Parte I y Parte II (preliminares).  
 - **tarea_2_cdd.py**: archivo de análisis para la Parte I.  
 - **Parte 2/**: carpeta con el análisis correspondiente a la Parte II.  
 
@@ -18,4 +18,4 @@ Se presentó un problema en el clasificador **k-NN**. Aunque el código estaba b
 ## Actualización de entregables
 
 - **Final Parte I**: `Hernández_Sánchez_Canche_CdD_Tarea_2_Proy.pdf`  
-- **Final Parte II**: Se mantiene en `Tarea 2 Ciencia de Datos.pdf` 
+- **Final Parte II**: `Tarea_2_Ciencia_de_Datos_Parte_II.pdf` (Originalmente enviado por correo ya que por alguna razón no permitía subirlo)
