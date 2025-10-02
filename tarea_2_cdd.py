@@ -2,14 +2,12 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
-from scipy import stats
 from sklearn.preprocessing import StandardScaler, LabelEncoder, OneHotEncoder, OrdinalEncoder
 from sklearn.compose import ColumnTransformer
-from sklearn.impute import SimpleImputer
 from sklearn.pipeline import Pipeline
 from sklearn.naive_bayes import GaussianNB
 from sklearn.model_selection import train_test_split
-from sklearn.metrics import accuracy_score, recall_score, precision_score, f1_score, roc_auc_score, confusion_matrix, classification_report
+from sklearn.metrics import accuracy_score, recall_score, precision_score, f1_score, roc_auc_score, confusion_matrix
 from sklearn.model_selection import cross_val_score, StratifiedKFold
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
 from sklearn.discriminant_analysis import QuadraticDiscriminantAnalysis
@@ -404,8 +402,9 @@ print(f"AUC-ROC: {auc_qda:.4f}")
 
 
 # Usamos las mismas definiciones de columnas
-cols_numericas = numerical_cols.copy()                                # columnas numéricas
-cols_numericas.remove("duration")
+cols_numericas = [col for col in numerical_cols if col != 'duration']
+#cols_numericas = numerical_cols.copy()                                # columnas numéricas
+#cols_numericas.remove("duration")
 cols_nominales = ['job', 'marital', 'contact', 'month', 'poutcome']        # categóricas nominales
 cols_ordinales = ['education']                  # categóricas ordinales
 cols_binarias = ['default','housing','loan']
@@ -415,7 +414,7 @@ cat_education = [["unknown","secondary","primary","tertiary"]]
 binarias = [["no", "yes"]]*len(cols_binarias)
 
 # Para k-NN es importante que todas las variables estén en la misma escala
-knn = KNeighborsClassifier(n_neighbors=5, weights='uniform')
+knn = KNeighborsClassifier(n_neighbors=50, weights='uniform')
 
 preprocessor_knn = ColumnTransformer(
     transformers=[
